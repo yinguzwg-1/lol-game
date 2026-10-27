@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>5v5 均衡抽签</title>
+<style>
+:root{
+  --primary:#3b82f6;
+  --primary-deep:#2563eb;
+  --bg:#eef4ff;
+  --card:#ffffff;
+  --text:#1f2937;
+  --text-weak:#6b7280;
+  --danger:#ef4444;
+  --success:#10b981;
+  --warn:#f59e0b;
+  --radius:16px;
+  --shadow:0 6px 20px rgba(59,130,246,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(160deg,#eaf2ff 0%,#f7fbff 45%,#e8f1ff 100%);
+  color:var(--text);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#app{max-width:520px;margin:0 auto;padding:12px 12px 100px;}
+
+/* ---------- 顶栏 ---------- */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 2px 8px;}
+header .logo{display:flex;align-items:center;gap:10px;}
+.logo .icon{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(59,130,246,.35);
+  letter-spacing:.5px;
+}
+.logo h1{font-size:18px;font-weight:800;}
+.logo p{font-size:11px;color:var(--text-weak);margin-top:1px;}
+
+/* ---------- 标签页 ---------- */
+.tabs{
+  display:flex;gap:6px;padding:8px 0 14px;
+}
+.tab{
+  flex:1;text-align:center;padding:11px 0;border-radius:14px;
+  background:rgba(255,255,255,.7);color:var(--text-weak);font-size:14px;font-weight:700;
+  border:1px solid rgba(59,130,246,.1);cursor:pointer;transition:all .2s;position:relative;
+  -webkit-user-select:none;user-select:none;
+}
+.tab.active{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;
+  box-shadow:0 6px 16px rgba(59,130,246,.35);border-color:transparent;
+}
+.tab .badge{
+  position:absolute;top:-5px;right:8px;min-width:18px;height:18px;line-height:18px;
+  background:var(--danger);color:#fff;font-size:10px;border-radius:9px;padding:0 5px;
+  font-weight:800;display:none;
+}
+.page{display:none;animation:fade .25s ease;}
+.page.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;
+}
+.section-title{
+  font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.section-title::before{
+  content:"";width:4px;height:14px;border-radius:2px;margin-right:7px;
+  background:linear-gradient(180deg,#3b82f6,#6366f1);
+  display:inline-block;
+}
+.section-title .sub{font-size:11px;color:var(--text-weak);font-weight:400;}
+
+/* ---------- 按钮 ---------- */
+.btn{
+  border:none;outline:none;cursor:pointer;border-radius:12px;
+  font-size:14px;font-weight:700;padding:12px 14px;
+  transition:transform .08s ease,opacity .2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:inherit;-webkit-user-select:none;user-select:none;
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;width:100%;
+  box-shadow:0 6px 16px rgba(59,130,246,.35);
+}
+.btn-primary:disabled{
+  opacity:.9;box-shadow:none;cursor:not-allowed;
+  background:#c7d2e0;background-image:none;color:#8a97a8;
+}
+.btn-ghost{background:var(--primary-weak,#e8f1ff);color:var(--primary-deep);font-size:12px;padding:8px 12px;font-weight:700;}
+.btn-danger{background:#fee2e2;color:var(--danger);font-size:12px;padding:8px 12px;font-weight:700;}
+.btn-sm{font-size:12px;padding:8px 12px;border-radius:10px;}
+.btn-win{background:#d1fae5;color:#059669;flex:1;padding:14px 0;font-size:15px;}
+.btn-cancel{background:#f3f4f6;color:var(--text-weak);flex:1;padding:14px 0;font-size:15px;}
+.btn-row{display:flex;gap:10px;margin-top:12px;}
+
+/* ---------- 选择工具 ---------- */
+.pick-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.pick-tools .btn{padding:8px 14px;font-size:12px;}
+.player-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  max-height:300px;overflow-y:auto;padding:2px;
+}
+.player-item{
+  display:flex;align-items:center;gap:8px;
+  border:1.5px solid #e5edfb;border-radius:12px;padding:9px 10px;
+  background:#fbfdff;cursor:pointer;transition:all .15s;position:relative;
+  -webkit-user-select:none;user-select:none;
+}
+.player-item:active{transform:scale(.98);}
+.player-item.on{
+  border-color:var(--primary-deep);
+  background:linear-gradient(135deg,#eef4ff,#e4edff);
+  box-shadow:0 3px 10px rgba(59,130,246,.15);
+}
+.player-item .avatar{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#93c5fd,#818cf8);
+  color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.player-item.on .avatar{background:linear-gradient(135deg,#3b82f6,#6366f1);}
+.player-item .info{flex:1;min-width:0;}
+.player-item .info .name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-item .info .score{font-size:10px;color:var(--text-weak);}
+.player-item .score-chip{
+  font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;
+  background:#f3f4f6;color:var(--text-weak);
+}
+.player-item.on .score-chip{background:#fff;color:var(--primary-deep);}
+.player-item .check{
+  position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+  background:var(--primary);color:#fff;font-size:12px;line-height:20px;text-align:center;
+  display:none;box-shadow:0 2px 6px rgba(59,130,246,.4);
+}
+.player-item.on .check{display:block;}
+.pick-status{font-size:12px;color:var(--text-weak);text-align:right;margin-top:10px;}
+.pick-status b{color:var(--primary-deep);}
+.empty-tip{
+  text-align:center;color:var(--text-weak);font-size:13px;padding:26px 10px;line-height:1.8;
+}
+.empty-tip .big{font-size:34px;display:block;margin-bottom:6px;}
+
+/* ---------- 抽签动画与结果 ---------- */
+.draw-area{text-align:center;}
+.draw-btn-wrap{padding:4px 0;}
+.shuffle-stage{display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px 0 8px;}
+.shuffle-stage.show{display:flex;}
+.shuffle-box{
+  width:100%;max-width:280px;height:54px;border-radius:14px;
+  background:linear-gradient(90deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:16px;letter-spacing:3px;
+  box-shadow:0 8px 24px rgba(59,130,246,.4);
+  animation:shake .45s infinite alternate;
+}
+@keyframes shake{
+  0%{transform:rotate(-2deg) scale(1);}
+  100%{transform:rotate(2deg) scale(1.05);}
+}
+.shuffle-names{
+  margin-top:12px;font-size:12px;color:var(--text-weak);
+  max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.team-cards{display:none;margin-top:14px;}
+.team-cards.show{display:block;animation:pop .35s cubic-bezier(.2,.9,.3,1.2);}
+@keyframes pop{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:none;}}
+.vs-row{display:flex;gap:8px;}
+.team{flex:1;border-radius:14px;padding:12px 10px;}
+.team-a{background:linear-gradient(160deg,#dbeafe,#eef4ff);border:1.5px solid #bfdbfe;}
+.team-b{background:linear-gradient(160deg,#fce7f3,#fdf2f8);border:1.5px solid #fbcfe8;}
+.team-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.team-head .tname{font-size:15px;font-weight:800;letter-spacing:1px;}
+.team-a .tname{color:#2563eb;}
+.team-b .tname{color:#db2777;}
+.team-head .tscore{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fff;color:var(--text-weak);}
+.team-list .row{display:flex;align-items:center;gap:6px;padding:5px 2px;font-size:13px;border-bottom:1px dashed rgba(0,0,0,.07);}
+.team-list .row:last-child{border-bottom:none;}
+.team-list .row .no{
+  width:18px;height:18px;border-radius:6px;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.team-a .row .no{background:#bfdbfe;color:#1d4ed8;}
+.team-b .row .no{background:#fbcfe8;color:#be185d;}
+.team-list .row .n{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.team-list .row .s{font-size:11px;color:var(--text-weak);flex-shrink:0;}
+.team-sum{
+  margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);
+  font-size:11px;color:var(--text-weak);display:flex;justify-content:space-between;
+}
+.team-sum b{color:var(--text);}
+.vs-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px;}
+.vs-mid .vs{
+  font-size:15px;font-weight:900;color:#9ca3af;
+  background:#fff;width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+.fair-diff{
+  display:inline-block;margin-top:12px;font-size:12px;font-weight:700;color:#059669;
+  background:#d1fae5;padding:4px 14px;border-radius:20px;
+}
+.fair-diff.bad{color:var(--danger);background:#fee2e2;}
+
+/* ---------- 玩家管理 ---------- */
+.add-row{display:flex;gap:8px;margin-bottom:10px;}
+.add-row input{
+  flex:1;border:1.5px solid #e5edfb;border-radius:12px;padding:11px 14px;
+  font-size:15px;outline:none;font-family:inherit;background:#fbfdff;min-width:0;
+}
+.add-row input:focus{border-color:var(--primary);background:#fff;}
+.add-row .btn{width:auto;padding:11px 20px;flex-shrink:0;}
+.add-tip{font-size:11px;color:var(--text-weak);margin-bottom:12px;}
+.rank-list{display:flex;flex-direction:column;gap:6px;}
+.rank-row{
+  display:flex;align-items:center;gap:10px;
+  background:#fbfdff;border:1px solid #eef3fc;border-radius:12px;padding:9px 12px;
+}
+.rank-row .rank{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff;
+}
+.rank-row .rank.r1{background:linear-gradient(135deg,#f59e0b,#fbbf24);}
+.rank-row .rank.r2{background:linear-gradient(135deg,#94a3b8,#cbd5e1);}
+.rank-row .rank.r3{background:linear-gradient(135deg,#b45309,#d97706);}
+.rank-row .rank.other{background:#e5e7eb;color:#6b7280;}
+.rank-row .avatar{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#93c5fd,#818cf8);
+  color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.rank-row .info{flex:1;min-width:0;}
+.rank-row .info .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rank-row .info .streak{font-size:11px;color:var(--text-weak);}
+.rank-row .score-big{font-size:17px;font-weight:800;color:var(--primary-deep);flex-shrink:0;min-width:36px;text-align:center;}
+.rank-row .delta{font-size:11px;font-weight:800;flex-shrink:0;min-width:26px;text-align:center;}
+.delta.up{color:#10b981;}
+.delta.down{color:#ef4444;}
+.rank-row .del{
+  border:none;background:#fee2e2;color:var(--danger);
+  width:26px;height:26px;border-radius:8px;font-size:14px;line-height:1;cursor:pointer;flex-shrink:0;
+}
+.rank-tools{display:flex;gap:8px;margin-top:12px;}
+.rank-tools .btn{flex:1;}
+
+/* ---------- 历史 ---------- */
+.history-item{
+  border:1px solid #eef3fc;border-radius:12px;padding:11px 12px;margin-bottom:8px;
+  background:#fbfdff;
+}
+.history-item .h-head{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;color:var(--text-weak);margin-bottom:7px;
+}
+.history-item .h-teams{display:flex;align-items:stretch;gap:8px;font-size:12px;}
+.history-item .h-team{flex:1;padding:6px 8px;border-radius:8px;}
+.history-item .h-team .names{font-weight:600;line-height:1.6;}
+.history-item .h-team small{display:block;color:var(--text-weak);margin-top:2px;}
+.history-item .h-team.win{background:#d1fae5;border:1px solid #a7f3d0;}
+.history-item .h-team.lose{background:#fee2e2;border:1px solid #fecaca;opacity:.85;}
+.history-item .h-vs{font-weight:800;color:#9ca3af;font-size:11px;display:flex;align-items:center;flex-shrink:0;}
+.history-item .h-undo{margin-top:8px;text-align:right;}
+.history-item .h-undo .btn{
+  font-size:11px;padding:6px 12px;border-radius:8px;
+  background:#f3f4f6;color:var(--text-weak);font-weight:700;
+}
+.record-pending-tip{margin-top:8px;font-size:11px;color:var(--warn);font-weight:700;}
+
+/* ---------- 结果录入弹层 ---------- */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-mask.show{display:flex;animation:fade .2s;}
+.modal{
+  width:100%;max-width:520px;background:#fff;border-radius:22px 22px 0 0;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom));
+  animation:slideup .28s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes slideup{from{transform:translateY(40px);opacity:.6;}to{transform:none;opacity:1;}}
+.modal .m-title{font-size:16px;font-weight:800;text-align:center;margin-bottom:4px;}
+.modal .m-sub{font-size:12px;color:var(--text-weak);text-align:center;margin-bottom:16px;}
+.modal .m-teams{display:flex;gap:10px;margin-bottom:16px;}
+.modal .m-team{flex:1;border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;}
+.modal .m-team .t{font-size:14px;font-weight:800;margin-bottom:6px;}
+.modal .m-team .names{font-size:11px;color:var(--text-weak);line-height:1.7;}
+.modal .m-team.selected{transform:scale(1.02);}
+.modal .m-team.selected.a{background:#dbeafe;border:2px solid #3b82f6;}
+.modal .m-team.selected.b{background:#fce7f3;border:2px solid #ec4899;}
+.modal .m-team:not(.selected){border:2px solid #e5e7eb;background:#f9fafb;}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;top:14%;transform:translateX(-50%);
+  background:rgba(17,24,39,.85);color:#fff;font-size:13px;font-weight:600;
+  padding:10px 20px;border-radius:24px;z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .25s;max-width:86%;text-align:center;
+}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">
+      <div class="icon">5V5</div>
+      <div>
+        <h1>均衡抽签</h1>
+        <p>胜 +1 分 · 负 −1 分 · 按积分均衡分组</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-page="draw">抽签</div>
+    <div class="tab" data-page="players">玩家<span class="badge" id="playerCountBadge"></span></div>
+    <div class="tab" data-page="history">战绩<span class="badge" id="historyCountBadge"></span></div>
+  </div>
+
+  <!-- ============ 抽签页 ============ -->
+  <div class="page active" id="page-draw">
+    <div class="card">
+      <div class="section-title">选择本局参赛玩家（10 人）</div>
+      <div class="pick-tools">
+        <button class="btn btn-ghost" id="pickTop">选积分前10</button>
+        <button class="btn btn-ghost" id="pickRandom">随机选10</button>
+        <button class="btn btn-ghost" id="pickAll">全选</button>
+        <button class="btn btn-ghost" id="pickClear">清空</button>
+      </div>
+      <div class="player-grid" id="pickGrid"></div>
+      <div class="empty-tip" id="pickEmpty" style="display:none;">
+        <span class="big">🎮</span>
+        还没有玩家，请先到「玩家」页添加
+      </div>
+      <div class="pick-status">已选 <b id="pickCount">0</b> / 10 人</div>
+    </div>
+
+    <div class="card draw-area">
+      <div class="section-title" style="justify-content:center;">均衡抽签</div>
+      <div class="draw-btn-wrap">
+        <button class="btn btn-primary" id="btnDraw" disabled>开始抽签</button>
+      </div>
+      <div class="shuffle-stage" id="shuffleStage">
+        <div class="shuffle-box" id="shuffleBox">洗牌中…</div>
+        <div class="shuffle-names" id="shuffleNames"></div>
+      </div>
+      <div class="team-cards" id="teamCards">
+        <div class="vs-row">
+          <div class="team team-a">
+            <div class="team-head">
+              <span class="tname">A 队</span>
+              <span class="tscore" id="scoreA"></span>
+            </div>
+            <div class="team-list" id="teamA"></div>
+            <div class="team-sum"><span>总积分</span><b id="sumA">0</b></div>
+          </div>
+          <div class="vs-mid"><div class="vs">VS</div></div>
+          <div class="team team-b">
+            <div class="team-head">
+              <span class="tname">B 队</span>
+              <span class="tscore" id="scoreB"></span>
+            </div>
+            <div class="team-list" id="teamB"></div>
+            <div class="team-sum"><span>总积分</span><b id="sumB">0</b></div>
+          </div>
+        </div>
+        <div class="fair-diff" id="fairTag"></div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnRecord" style="width:100%;">录入比赛结果</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 玩家页 ============ -->
+  <div class="page" id="page-players">
+    <div class="card">
+      <div class="section-title">添加玩家</div>
+      <div class="add-row">
+        <input id="newPlayerName" placeholder="输入昵称，回车添加" maxlength="10">
+        <button class="btn btn-primary" id="btnAddPlayer">添加</button>
+      </div>
+      <p class="add-tip">新玩家初始积分 0；添加后可直接在「抽签」页勾选参赛</p>
+    </div>
+
+    <div class="card">
+      <div class="section-title">积分排行榜<span class="sub" id="rankSummary"></span></div>
+      <div class="rank-list" id="rankList"></div>
+      <div class="empty-tip" id="rankEmpty" style="display:none;">
+        <span class="big">🏆</span>
+        还没有玩家，输入昵称添加第一位玩家吧
+      </div>
+      <div class="rank-tools">
+        <button class="btn btn-ghost" id="btnSortByScore">按积分排序</button>
+        <button class="btn btn-danger" id="btnClearScores">积分全部清零</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 战绩页 ============ -->
+  <div class="page" id="page-history">
+    <div class="card">
+      <div class="section-title">对战历史与积分变动</div>
+      <div id="historyList"></div>
+      <div class="record-empty empty-tip" id="historyEmpty" style="display:none;">
+        <span style="font-size:30px;display:block;margin-bottom:6px;">🏆</span>
+        还没有对战记录<br>抽签后点击「录入比赛结果」即可记录积分
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 结果录入弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="m-title">谁是本局胜方？</div>
+    <div class="m-sub">胜方每人 <b style="color:#059669;">+1</b> 分，败方每人 <b style="color:#ef4444;">-1</b> 分</div>
+    <div class="m-teams">
+      <div class="m-team a" id="modalTeamA">
+        <div class="t">A 队</div>
+        <div class="names" id="modalNamesA"></div>
+      </div>
+      <div class="m-team b" id="modalTeamB">
+        <div class="t">B 队</div>
+        <div class="names" id="modalNamesB"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" id="btnCancelRecord">取消</button>
+      <button class="btn btn-win" id="btnConfirmRecord">确认胜方</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= 数据层 ================= */
+var KEY_PLAYERS = 'elo_draw_players_v1';
+var KEY_HISTORY = 'elo_draw_history_v1';
+var players = load(KEY_PLAYERS, []);
+var history = load(KEY_HISTORY, []);
+var pendingSet = {};        // 本局勾选的玩家 id -> true
+var currentTeams = null;    // 最近一次抽签结果 {A:[], B:[]}
+var modalWinner = null;     // 弹窗中选中的队伍 'A'|'B'
+var toastTimer = null;
+
+function load(key, def){
+  try{
+    var s = localStorage.getItem(key);
+    return s ? JSON.parse(s) : def;
+  }catch(e){ return def; }
+}
+function save(){
+  try{
+    localStorage.setItem(KEY_PLAYERS, JSON.stringify(players));
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(history));
+  }catch(e){}
+}
+
+/* ================= 工具 ================= */
+function $(id){ return document.getElementById(id); }
+function shuffleArr(arr){
+  var a = arr.slice();
+  for(var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function toast(msg){
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function nowStr(){
+  var d = new Date();
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  return (d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+/* ================= 均衡分组算法（蛇形分配） =================
+   按积分从高到低排序 → 蛇形交替分配到 A/B 两队
+   （第1名A、第2名B、第3名B、第4名A……），
+   使两队总积分与人数都尽量均衡，最后队内随机打乱站位。 */
+function balancedDraw(list){
+  var sorted = list.slice().sort(function(a, b){ return b.score - a.score; });
+  var A = [], B = [];
+  sorted.forEach(function(p, i){
+    var mod = i % 4;
+    if(mod === 0 || mod === 3) A.push(p);   // 0,3 → A
+    else B.push(p);                         // 1,2 → B
+  });
+  return { A: shuffleArr(A), B: shuffleArr(B) };
+}
+function teamSum(t){ return t.reduce(function(s, p){ return s + p.score; }, 0); }
+
+/* ================= 渲染：抽签页选择器 ================= */
+function renderPickGrid(){
+  var grid = $('pickGrid');
+  var empty = $('pickEmpty');
+  grid.innerHTML = '';
+  if(players.length === 0){
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    updatePickCount();
+    return;
+  }
+  grid.style.display = 'grid';
+  empty.style.display = 'none';
+  var sorted = players.slice().sort(function(a, b){ return b.score - a.score; });
+  sorted.forEach(function(p){
+    var div = document.createElement('div');
+    div.className = 'player-item' + (pendingSet[p.id] ? ' on' : '');
+    div.dataset.id = p.id;
+    div.innerHTML =
+      '<div class="avatar">' + esc(p.name.charAt(0)) + '</div>' +
+      '<div class="info"><div class="name">' + esc(p.name) + '</div>' +
+      '<div class="score">积分 ' + p.score + '</div></div>' +
+      '<div class="score-chip">' + (p.score >= 0 ? '+' : '') + p.score + '</div>' +
+      '<div class="check">✓</div>';
+    div.addEventListener('click', function(){
+      if(pendingSet[p.id]) delete pendingSet[p.id];
+      else pendingSet[p.id] = true;
+      renderPickGrid();
+    });
+    grid.appendChild(div);
+  });
+  updatePickCount();
+}
+function updatePickCount(){
+  var n = 0;
+  for(var k in pendingSet) n++;
+  $('pickCount').textContent = n;
+  $('btnDraw').disabled = (n !== 10);
+}
+function pickTop10(){
+  pendingSet = {};
+  players.slice().sort(function(a, b){ return b.score - a.score; })
+    .slice(0, 10).forEach(function(p){ pendingSet[p.id] = true; });
+  renderPickGrid();
+}
+function pickRandom10(){
+  pendingSet = {};
+  shuffleArr(players).slice(0, 10).forEach(function(p){ pendingSet[p.id] = true; });
+  renderPickGrid();
+}
+function pickAll(){
+  pendingSet = {};
+  players.forEach(function(p){ pendingSet[p.id] = true; });
+  renderPickGrid();
+}
+function pickClear(){ pendingSet = {}; renderPickGrid(); }
+
+/* ================= 渲染：玩家页 ================= */
+function renderPlayers(){
+  var list = $('rankList');
+  var empty = $('rankEmpty');
+  list.innerHTML = '';
+  var sorted = players.slice().sort(function(a, b){
+    if(b.score !== a.score) return b.score - a.score;
+    return a.name.localeCompare(b.name, 'zh');
+  });
+  $('rankSummary').textContent = '共 ' + players.length + ' 人';
+  if(players.length === 0){
+    empty.style.display = 'block';
+  }else{
+    empty.style.display = 'none';
+    sorted.forEach(function(p, i){
+      var row = document.createElement('div');
+      row.className = 'rank-row';
+      var rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'other';
+      var deltaHtml = p.delta > 0
+        ? '<div class="delta up">+1</div>'
+        : p.delta < 0
+          ? '<div class="delta down">-1</div>'
+          : '';
+      row.innerHTML =
+        '<div class="rank ' + rankCls + '">' + (i + 1) + '</div>' +
+        '<div class="avatar">' + esc(p.name.charAt(0)) + '</div>' +
+        '<div class="info"><div class="name">' + esc(p.name) + '</div>' +
+        '<div class="streak">' + (p.delta > 0 ? '上局获胜' : p.delta < 0 ? '上局落败' : '最近无变动') + '</div></div>' +
+        '<div class="score-big">' + p.score + '</div>' +
+        deltaHtml +
+        '<button class="del" data-id="' + p.id + '">×</button>';
+      row.querySelector('.del').addEventListener('click', function(){
+        removePlayer(p.id);
+      });
+      list.appendChild(row);
+    });
+  }
+  updateBadges();
+}
+
+function removePlayer(id){
+  if(!confirm('确定删除该玩家？其积分记录将一并清除。')) return;
+  players = players.filter(function(p){ return p.id !== id; });
+  delete pendingSet[id];
+  save();
+  renderPickGrid(); renderPlayers();
+  toast('已删除玩家');
+}
+
+/* ================= 渲染：战绩页 ================= */
+function renderHistory(){
+  var box = $('historyList');
+  var empty = $('historyEmpty');
+  box.innerHTML = '';
+  if(history.length === 0){
+    empty.style.display = 'block';
+    $('historyCountBadge').style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  $('historyCountBadge').textContent = history.length;
+  $('historyCountBadge').style.display = 'block';
+  var html = '';
+  for(var i = history.length - 1; i >= 0; i--){
+    html += renderHistoryItem(history[i], i);
+  }
+  box.innerHTML = html;
+  var btns = box.querySelectorAll('.undo-btn');
+  for(var j = 0; j < btns.length; j++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        undoHistory(parseInt(btn.getAttribute('data-idx'), 10));
+      });
+    })(btns[j]);
+  }
+}
+function teamNamesHtml(team, win){
+  var cls = win ? 'win' : 'lose';
+  var names = team.map(function(p){ return esc(p.name); }).join('、');
+  var sum = team.reduce(function(s, p){ return s + p.score; }, 0);
+  return '<div class="h-team ' + cls + '"><div class="names">' + names + '</div>' +
+         '<small>积分 ' + sum + (win ? ' · 胜' : ' · 负') + '</small></div>';
+}
+function renderHistoryItem(h, idx){
+  var hasResult = !!h.result;
+  var aWin = hasResult && h.result === 'A';
+  var bWin = hasResult && h.result === 'B';
+  var html =
+    '<div class="history-item">' +
+      '<div class="h-head"><span>第 ' + (idx + 1) + ' 局</span><span>' + esc(h.time || '') + '</span></div>' +
+      '<div class="h-teams">' +
+        teamNamesHtml(h.teamA, aWin) +
+        '<div class="h-vs">VS</div>' +
+        teamNamesHtml(h.teamB, bWin) +
+      '</div>';
+  if(hasResult){
+    html += '<div class="h-undo"><button class="undo-btn" data-idx="' + idx + '">撤销本局</button></div>';
+  }else{
+    html += '<div class="record-pending-tip">⏳ 已抽签，尚未录入结果</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ================= 抽签 ================= */
+function doDraw(){
+  var ids = Object.keys(pendingSet);
+  var pool = players.filter(function(p){ return ids.indexOf(String(p.id)) >= 0; });
+  if(pool.length !== 10){
+    toast('请选择 10 名玩家后再抽签');
+    return;
+  }
+  $('btnDraw').disabled = true;
+  var stage = $('shuffleStage');
+  var cards = $('teamCards');
+  cards.classList.remove('show');
+  stage.classList.add('show');
+  var namesBox = $('shuffleNames');
+  var chars = ['🎮','⚔️','🎲','🏆','🔥'];
+  var tick = 0;
+  var anim = setInterval(function(){
+    var sample = shuffleArr(pool).slice(0, 6);
+    $('shuffleBox').textContent = '洗牌中 ' + chars[tick % chars.length];
+    namesBox.textContent = sample.map(function(p){ return p.name; }).join(' · ');
+    tick++;
+  }, 120);
+
+  setTimeout(function(){
+    clearInterval(anim);
+    var res = balancedDraw(pool);
+    currentTeams = res;
+    renderTeams(res);
+    stage.classList.remove('show');
+    cards.classList.add('show');
+    var rec = {
+      time: nowStr(),
+      teamA: res.A.map(function(p){ return { id: p.id, name: p.name, score: p.score }; }),
+      teamB: res.B.map(function(p){ return { id: p.id, name: p.name, score: p.score }; }),
+      result: null
+    };
+    history.push(rec);
+    if(history.length > 50) history.shift();
+    save();
+    renderHistory();
+    toast('抽签完成，两队积分均衡！');
+  }, 1800);
+}
+
+function renderTeams(res){
+  var A = res.A, B = res.B;
+  var sumA = teamSum(A), sumB = teamSum(B);
+  $('teamA').innerHTML = '';
+  $('teamB').innerHTML = '';
+  A.forEach(function(p, i){ $('teamA').appendChild(teamRow(i, p)); });
+  B.forEach(function(p, i){ $('teamB').appendChild(teamRow(i, p)); });
+  $('sumA').textContent = sumA;
+  $('sumB').textContent = sumB;
+  $('scoreA').textContent = '均分 ' + (sumA / 5).toFixed(1);
+  $('scoreB').textContent = '均分 ' + (sumB / 5).toFixed(1);
+  var diff = Math.abs(sumA - sumB);
+  var tag = $('fairTag');
+  tag.className = 'fair-diff' + (diff > 2 ? ' bad' : '');
+  tag.textContent = diff <= 2
+    ? '两队积分均衡 ✓（差 ' + diff + ' 分）'
+    : '两队积分差 ' + diff + ' 分';
+}
+function teamRow(i, p){
+  var row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML =
+    '<div class="no">' + (i + 1) + '</div>' +
+    '<div class="n">' + esc(p.name) + '</div>' +
+    '<div class="s">' + p.score + ' 分</div>';
+  return row;
+}
+
+/* ================= 战绩录入 ================= */
+function openRecordModal(){
+  if(!currentTeams) return;
+  $('modalNamesA').textContent = currentTeams.A.map(function(p){ return p.name; }).join('、');
+  $('modalNamesB').textContent = currentTeams.B.map(function(p){ return p.name; }).join('、');
+  modalWinner = null;
+  $('modalTeamA').classList.remove('selected');
+  $('modalTeamB').classList.remove('selected');
+  $('modalMask').style.display = 'flex';
+}
+$('modalTeamA').addEventListener('click', function(){
+  modalWinner = 'A';
+  $('modalTeamA').classList.add('selected');
+  $('modalTeamB').classList.remove('selected');
+});
+$('modalTeamB').addEventListener('click', function(){
+  modalWinner = 'B';
+  $('modalTeamB').classList.add('selected');
+  $('modalTeamA').classList.remove('selected');
+});
+function confirmRecord(){
+  if(!modalWinner || !currentTeams) return;
+  var win = modalWinner === 'A' ? currentTeams.A : currentTeams.B;
+  var lose = modalWinner === 'A' ? currentTeams.B : currentTeams.A;
+  var winIds = {}, loseIds = {};
+  win.forEach(function(p){ winIds[p.id] = true; });
+  lose.forEach(function(p){ loseIds[p.id] = true; });
+
+  players.forEach(function(p){
+    p.delta = 0;
+    if(winIds[p.id]){ p.score += 1; p.delta = 1; }
+    else if(loseIds[p.id]){ p.score -= 1; p.delta = -1; }
+  });
+
+  var last = history[history.length - 1];
+  if(last) last.result = modalWinner;
+
+  save();
+  $('modalMask').style.display = 'none';
+  var winName = modalWinner === 'A' ? 'A 队' : 'B 队';
+  currentTeams = null;
+  $('teamCards').classList.remove('show');
+  renderPlayers(); renderHistory(); renderPickGrid();
+  toast(winName + '获胜！积分已更新');
+}
+
+/* ================= 撤销本局 ================= */
+function undoHistory(idx){
+  var h = history[idx];
+  if(!h) return;
+  if(!confirm('撤销第 ' + (idx + 1) + ' 局？将回退该局所有积分变动。')) return;
+  if(h.result){
+    var winIds = {}, loseIds = {};
+    var winTeam = h.result === 'A' ? h.teamA : h.teamB;
+    var loseTeam = h.result === 'A' ? h.teamB : h.teamA;
+    winTeam.forEach(function(p){ winIds[p.id] = true; });
+    loseTeam.forEach(function(p){ loseIds[p.id] = true; });
+    players.forEach(function(p){
+      if(winIds[p.id]) p.score -= 1;
+      else if(loseIds[p.id]) p.score += 1;
+    });
+  }
+  history.splice(idx, 1);
+  save();
+  renderPlayers(); renderHistory(); renderPickGrid();
+  toast('已撤销第 ' + (idx + 1) + ' 局');
+}
+
+/* ================= 徽标 ================= */
+function updateBadges(){
+  var pb = $('playerCountBadge');
+  if(players.length > 0){
+    pb.textContent = players.length;
+    pb.style.display = 'block';
+  }else{
+    pb.style.display = 'none';
+  }
+  var hb = $('historyCountBadge');
+  if(history.length > 0){
+    hb.textContent = history.length;
+    hb.style.display = 'block';
+  }else{
+    hb.style.display = 'none';
+  }
+}
+
+/* ================= 事件绑定 ================= */
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    tab.classList.add('active');
+    $('page-' + tab.dataset.page).classList.add('active');
+  });
+});
+
+$('pickTop').addEventListener('click', pickTop10);
+$('pickRandom').addEventListener('click', pickRandom10);
+$('pickAll').addEventListener('click', pickAll);
+$('pickClear').addEventListener('click', pickClear);
+
+function addPlayer(){
+  var input = $('newPlayerName');
+  var name = input.value.trim();
+  if(!name){ toast('请输入玩家昵称'); return; }
+  if(players.some(function(p){ return p.name === name; })){
+    toast('该昵称已存在');
+    return;
+  }
+  players.push({
+    id: 'p' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name: name,
+    score: 0,
+    delta: 0
+  });
+  input.value = '';
+  save();
+  renderPickGrid(); renderPlayers();
+  toast('已添加「' + name + '」，初始 0 分');
+}
+$('btnAddPlayer').addEventListener('click', addPlayer);
+$('newPlayerName').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') addPlayer();
+});
+
+$('btnDraw').addEventListener('click', doDraw);
+$('btnRecord').addEventListener('click', openRecordModal);
+$('btnCancelRecord').addEventListener('click', function(){ $('modalMask').style.display = 'none'; });
+$('btnConfirmRecord').addEventListener('click', confirmRecord);
+$('modalMask').addEventListener('click', function(e){
+  if(e.target === this) this.style.display = 'none';
+});
+
+$('btnSortByScore').addEventListener('click', function(){
+  renderPlayers();
+  toast('已按积分重新排序');
+});
+$('btnClearScores').addEventListener('click', function(){
+  if(!confirm('确定将所有玩家积分清零？')) return;
+  players.forEach(function(p){ p.score = 0; p.delta = 0; });
+  save(); renderPlayers(); renderPickGrid();
+  toast('积分已全部清零');
+});
+
+/* ================= 初始化 ================= */
+renderPickGrid();
+renderPlayers();
+renderHistory();
+updateBadges();
+
+})();
+</script>
+</body>
+</html>
