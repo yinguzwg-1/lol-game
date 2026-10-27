@@ -1,0 +1,1962 @@
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>对战盒子</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="对战盒子">
+<style>
+:root{
+  --primary:#3b82f6;
+  --primary-deep:#2563eb;
+  --bg:#eef4ff;
+  --card:#ffffff;
+  --text:#1f2937;
+  --text-weak:#6b7280;
+  --danger:#ef4444;
+  --success:#10b981;
+  --warn:#f59e0b;
+  --radius:16px;
+  --shadow:0 6px 20px rgba(59,130,246,.10);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:linear-gradient(160deg,#eaf2ff 0%,#f7fbff 45%,#e8f1ff 100%);
+  color:var(--text);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#app{max-width:520px;margin:0 auto;padding:12px 12px 100px;}
+/* 桌面/平板视口：主容器加宽，网页打开不显得窄（手机端保持原窄布局） */
+@media (min-width:780px){
+  #app{max-width:780px;padding:16px 24px 120px;}
+}
+
+/* ---------- 顶栏 ---------- */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 2px 8px;}
+header .logo{display:flex;align-items:center;gap:10px;}
+.logo .icon{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:13px;font-weight:800;box-shadow:0 4px 12px rgba(59,130,246,.35);
+  letter-spacing:.5px;
+}
+.logo h1{font-size:18px;font-weight:800;}
+.logo p{font-size:11px;color:var(--text-weak);margin-top:1px;}
+
+/* ---------- 标签页 ---------- */
+.tabs{display:flex;gap:6px;padding:8px 0 14px;}
+.tab{
+  flex:1;text-align:center;padding:11px 0;border-radius:14px;
+  background:rgba(255,255,255,.7);color:var(--text-weak);font-size:14px;font-weight:700;
+  border:1px solid rgba(59,130,246,.1);cursor:pointer;transition:all .2s;position:relative;
+  -webkit-user-select:none;user-select:none;
+}
+.tab.active{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;
+  box-shadow:0 6px 16px rgba(59,130,246,.35);border-color:transparent;
+}
+.tab .badge{
+  position:absolute;top:-5px;right:8px;min-width:18px;height:18px;line-height:18px;
+  background:var(--danger);color:#fff;font-size:10px;border-radius:9px;padding:0 5px;
+  font-weight:800;display:none;
+}
+.page{display:none;animation:fade .25s ease;}
+.page.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:16px;margin-bottom:14px;
+}
+.section-title{
+  font-size:13px;font-weight:800;color:var(--text);margin-bottom:12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.section-title::before{
+  content:"";width:4px;height:14px;border-radius:2px;margin-right:7px;
+  background:linear-gradient(180deg,#3b82f6,#6366f1);
+  display:inline-block;
+}
+.section-title .sub{font-size:11px;color:var(--text-weak);font-weight:400;}
+/* 积分榜模式选择按钮 + 弹出菜单（总榜/3v3/4v4/5v5，默认总榜） */
+.rank-mode-wrap{position:relative;display:inline-block;}
+.rank-mode-btn{
+  border:1px solid #e5edfb;background:#fbfdff;color:#2563eb;border-radius:14px;
+  font-size:11px;font-weight:700;padding:4px 12px;cursor:pointer;font-family:inherit;
+}
+.rank-mode-btn:active{transform:scale(.95);}
+.rank-mode-menu{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:60;
+  background:#fff;border:1px solid #e5edfb;border-radius:12px;
+  box-shadow:0 8px 24px rgba(30,64,175,.16);padding:4px;min-width:150px;
+}
+.rank-mode-menu .rm-item{font-size:12px;font-weight:600;color:var(--text);padding:9px 12px;border-radius:9px;cursor:pointer;white-space:nowrap;}
+.rank-mode-menu .rm-item:active{background:#f1f5f9;}
+.rank-mode-menu .rm-item.on{background:#eef4ff;color:var(--primary-deep);}
+/* 积分榜排序下拉框 */
+.rank-sort-wrap{display:inline-block;margin-left:6px;vertical-align:middle;}
+.rank-sort{
+  border:1px solid #e5edfb;background:#fbfdff;color:#2563eb;border-radius:12px;
+  font-size:11px;font-weight:700;padding:4px 6px;cursor:pointer;font-family:inherit;
+  -webkit-appearance:none;appearance:none;
+}
+.rank-sort:focus{outline:none;border-color:#2563eb;}
+/* 排行行右侧：大数字积分 + 下方小字（总榜时显示三模式总和） */
+.score-col{flex-shrink:0;text-align:center;}
+.score-col .score-sub{font-size:10px;color:var(--text-weak);font-weight:600;margin-top:1px;white-space:nowrap;}
+
+/* ---------- 按钮 ---------- */
+.btn{
+  border:none;outline:none;cursor:pointer;border-radius:12px;
+  font-size:14px;font-weight:700;padding:12px 14px;
+  transition:transform .08s ease,opacity .2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  font-family:inherit;-webkit-user-select:none;user-select:none;
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;width:100%;
+  box-shadow:0 6px 16px rgba(59,130,246,.35);
+}
+.btn-primary:disabled{
+  opacity:.9;box-shadow:none;cursor:not-allowed;
+  background:#c7d2e0;background-image:none;color:#8a97a8;
+}
+.btn-ghost{background:var(--primary-weak,#e8f1ff);color:var(--primary-deep);font-size:12px;padding:8px 12px;font-weight:700;}
+.btn-danger{background:#fee2e2;color:var(--danger);font-size:12px;padding:8px 12px;font-weight:700;}
+.btn-win{background:#d1fae5;color:#059669;flex:1;padding:14px 0;font-size:15px;}
+.btn-cancel{background:#f3f4f6;color:var(--text-weak);flex:1;padding:14px 0;font-size:15px;}
+.btn-row{display:flex;gap:10px;margin-top:12px;}
+
+/* ---------- 选择工具 ---------- */
+.pick-tools{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.pick-tools .btn{padding:8px 14px;font-size:12px;}
+.player-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  padding:2px;
+}
+.player-item{
+  display:flex;align-items:center;gap:6px;min-width:0;
+  border:1.5px solid #e5edfb;border-radius:10px;padding:6px 8px;
+  background:#fbfdff;cursor:pointer;transition:all .15s;position:relative;
+  -webkit-user-select:none;user-select:none;
+}
+.player-item:active{transform:scale(.98);}
+.player-item.on{
+  border-color:var(--primary-deep);
+  background:linear-gradient(135deg,#eef4ff,#e4edff);
+  box-shadow:0 3px 10px rgba(59,130,246,.15);
+}
+.player-item .avatar{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#93c5fd,#818cf8);
+  color:#fff;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.player-item.on .avatar{background:linear-gradient(135deg,#3b82f6,#6366f1);}
+.player-item .info{flex:1;min-width:0;}
+.player-item .info .name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.player-item .info .score{font-size:10px;color:var(--text-weak);}
+.player-item .score-chip{
+  font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;flex-shrink:0;
+  background:#f3f4f6;color:var(--text-weak);
+}
+.player-item.on .score-chip{background:#fff;color:var(--primary-deep);}
+.player-item .check{
+  position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;
+  background:var(--primary);color:#fff;font-size:11px;line-height:18px;text-align:center;
+  display:none;box-shadow:0 2px 6px rgba(59,130,246,.4);
+}
+.player-item.on .check{display:block;}
+/* 手机窄屏：2 列布局，保证长昵称完整显示（桌面仍 4 列、16 人一屏） */
+@media (max-width:779px){
+  .player-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .player-item{padding:6px 8px;gap:6px;border-radius:12px;}
+  .player-item .avatar{width:26px;height:26px;font-size:12px;}
+  .player-item .info .name{font-size:12px;}
+  .player-item .check{top:-5px;right:-5px;width:18px;height:18px;font-size:11px;line-height:18px;}
+}
+.pick-status{font-size:12px;color:var(--text-weak);text-align:right;margin-top:10px;}
+.pick-status b{color:var(--primary-deep);}
+.empty-tip{
+  text-align:center;color:var(--text-weak);font-size:13px;padding:26px 10px;line-height:1.8;
+}
+.empty-tip .big{font-size:34px;display:block;margin-bottom:6px;}
+
+/* ---------- 抽签动画与结果 ---------- */
+.draw-area{text-align:center;}
+.draw-btn-wrap{padding:4px 0;}
+.shuffle-stage{display:none;flex-direction:column;align-items:center;justify-content:center;padding:18px 0 8px;}
+.shuffle-stage.show{display:flex;}
+.shuffle-box{
+  width:100%;max-width:280px;height:54px;border-radius:14px;
+  background:linear-gradient(90deg,#3b82f6,#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:800;font-size:16px;letter-spacing:3px;
+  box-shadow:0 8px 24px rgba(59,130,246,.4);
+  animation:shake .45s infinite alternate;
+}
+@keyframes shake{
+  0%{transform:rotate(-2deg) scale(1);}
+  100%{transform:rotate(2deg) scale(1.05);}
+}
+.shuffle-names{
+  margin-top:12px;font-size:12px;color:var(--text-weak);
+  max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.team-cards{display:none;margin-top:14px;}
+.team-cards.show{display:block;animation:pop .35s cubic-bezier(.2,.9,.3,1.2);}
+@keyframes pop{from{opacity:0;transform:scale(.92);}to{opacity:1;transform:none;}}
+.vs-row{display:flex;gap:8px;}
+.team{flex:1;border-radius:14px;padding:12px 10px;min-width:0;}
+/* 抽签结果 A/B 两队始终左右并排；隐藏积分后成员行内容短，窄屏也放得下 */
+.team-a{background:linear-gradient(160deg,#dbeafe,#eef4ff);border:1.5px solid #bfdbfe;}
+.team-b{background:linear-gradient(160deg,#fce7f3,#fdf2f8);border:1.5px solid #fbcfe8;}
+.team-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.team-head .tname{font-size:15px;font-weight:800;letter-spacing:1px;}
+.team-a .tname{color:#2563eb;}
+.team-b .tname{color:#db2777;}
+.team-head .tscore{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fff;color:var(--text-weak);}
+.team-list .row{display:flex;align-items:center;gap:6px;padding:5px 2px;font-size:13px;border-bottom:1px dashed rgba(0,0,0,.07);}
+.team-list .row:last-child{border-bottom:none;}
+.team-list .row .no{
+  width:18px;height:18px;border-radius:6px;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.team-a .row .no{background:#bfdbfe;color:#1d4ed8;}
+.team-b .row .no{background:#fbcfe8;color:#be185d;}
+.team-list .row .n{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.team-list .row .s{font-size:11px;color:var(--text-weak);flex-shrink:0;}
+.team-sum{
+  margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,.08);
+  font-size:11px;color:var(--text-weak);display:flex;justify-content:space-between;
+}
+.team-sum b{color:var(--text);}
+.vs-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 2px;}
+.vs-mid .vs{
+  font-size:15px;font-weight:900;color:#9ca3af;
+  background:#fff;width:34px;height:34px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px rgba(0,0,0,.08);
+}
+.fair-diff{
+  display:inline-block;margin-top:12px;font-size:12px;font-weight:700;color:#059669;
+  background:#d1fae5;padding:4px 14px;border-radius:20px;
+}
+.fair-diff.bad{color:var(--danger);background:#fee2e2;}
+
+/* ---------- 玩家管理 ---------- */
+.add-row{display:flex;gap:8px;margin-bottom:10px;}
+.add-row input{
+  flex:1;border:1.5px solid #e5edfb;border-radius:12px;padding:11px 14px;
+  font-size:15px;outline:none;font-family:inherit;background:#fbfdff;min-width:0;
+}
+.add-row input:focus{border-color:var(--primary);background:#fff;}
+.add-row .btn{width:auto;padding:11px 20px;flex-shrink:0;}
+.add-tip{font-size:11px;color:var(--text-weak);margin-bottom:12px;}
+.rank-list{display:flex;flex-direction:column;gap:6px;}
+.rank-row{
+  display:flex;align-items:center;gap:10px;
+  background:#fbfdff;border:1px solid #eef3fc;border-radius:12px;padding:9px 12px;
+}
+.rank-row .rank{
+  width:24px;height:24px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:#fff;
+}
+.rank-row .rank.r1{background:linear-gradient(135deg,#f59e0b,#fbbf24);}
+.rank-row .rank.r2{background:linear-gradient(135deg,#94a3b8,#cbd5e1);}
+.rank-row .rank.r3{background:linear-gradient(135deg,#b45309,#d97706);}
+.rank-row .rank.other{background:#e5e7eb;color:#6b7280;}
+.rank-row .avatar{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#93c5fd,#818cf8);
+  color:#fff;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+}
+.rank-row .info{flex:1;min-width:0;}
+.rank-row .info .name{font-size:14px;font-weight:600;display:flex;align-items:center;flex-wrap:wrap;gap:3px;min-width:0;}
+.rank-row .info .name .n-txt{overflow:hidden;text-overflow:ellipsis;}
+.hero-tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:8px;white-space:nowrap;flex-shrink:0;}
+.hero-tag.best{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;}
+.hero-tag.worst{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;}
+.rank-row .info .streak{font-size:11px;color:var(--text-weak);}
+.rank-row .score-big{font-size:17px;font-weight:800;color:var(--primary-deep);flex-shrink:0;min-width:36px;text-align:center;}
+.rank-row .delta{font-size:11px;font-weight:800;flex-shrink:0;min-width:26px;text-align:center;}
+.delta.up{color:#10b981;}
+.delta.down{color:#ef4444;}
+.rank-row .del{
+  border:none;background:#fee2e2;color:var(--danger);
+  width:26px;height:26px;border-radius:8px;font-size:14px;line-height:1;cursor:pointer;flex-shrink:0;
+}
+.rank-tools{display:flex;gap:8px;margin-top:12px;}
+.rank-tools .btn{flex:1;}
+
+/* ---------- 历史 ---------- */
+/* 每局外框用不同的双色渐变（4 套循环），相邻对局一眼可分 */
+.history-item{
+  border:1px solid #eef3fc;border-radius:12px;padding:11px 12px;margin-bottom:8px;
+  background:linear-gradient(135deg,#eff6ff,#ecfeff);
+}
+.history-item:nth-child(4n+2){background:linear-gradient(135deg,#fdf4ff,#fff7ed);}
+.history-item:nth-child(4n+3){background:linear-gradient(135deg,#f0fdf4,#f0fdfa);}
+.history-item:nth-child(4n+4){background:linear-gradient(135deg,#fefce8,#fdf2f8);}
+/* 未录入胜负的局保持白底 */
+.history-item.no-res{background:#fbfdff;}
+.history-item .h-head{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:11px;color:var(--text-weak);margin-bottom:7px;
+}
+.history-item .h-teams{display:flex;align-items:stretch;gap:8px;font-size:12px;}
+/* 胜负两队左右并排同一平面；窄屏靠 p-sub 自动换行防截断 */
+.history-item .h-team{flex:1;padding:6px 8px;border-radius:8px;min-width:0;}
+.history-item .h-team .p-row{
+  display:flex;align-items:center;justify-content:space-between;gap:6px;
+  font-weight:600;line-height:1.9;
+}
+.history-item .h-team .p-row .pn{flex:1;min-width:0;}
+/* 玩家名一行放大；KDA/英雄第二行，伤害数据第三行：手机窄屏防截断 */
+.pn .p-name{
+  display:block;font-size:13px;font-weight:800;line-height:1.5;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.pn .p-sub{
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:1px;
+  font-size:11px;line-height:1.4;white-space:nowrap;
+}
+.history-item .h-team .p-row .ps{font-size:10px;color:var(--text-weak);font-weight:400;flex-shrink:0;}
+.history-item .h-team small{display:block;color:var(--text-weak);margin-top:4px;padding-top:4px;border-top:1px dashed rgba(0,0,0,.08);}
+/* 胜负队伍恢复实色块（绿胜/粉负），与每局渐变外框搭配 */
+.history-item .h-team{background:#f3f4f6;border:1px solid #e5e7eb;}
+.history-item .h-team.win{background:#d1fae5;border:1px solid #a7f3d0;}
+.history-item .h-team.lose{background:#fee2e2;border:1px solid #fecaca;opacity:.85;}
+.history-item .h-team:not(.win):not(.lose){background:#f8fafc;border:1px solid #e5e7eb;}
+.history-item .h-act{display:flex;gap:8px;margin-top:8px;}
+.history-item .h-btn{flex:1;padding:6px 0;font-size:12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:var(--text-weak);font-weight:600;cursor:pointer;}
+.history-item .h-btn:active{transform:scale(.97);}
+.history-item .h-btn.h-undo{color:#dc2626;border-color:#fecaca;}
+.history-item .h-vs{font-weight:800;color:#9ca3af;font-size:11px;display:flex;align-items:center;flex-shrink:0;}
+/* 弹窗队伍名单一人一行 */
+.modal .m-team .names .m-row{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12px;color:var(--text);font-weight:600;line-height:1.9;
+}
+/* 弹窗 X杀加成 */
+.kill-sec{margin:0 0 14px;}
+.k-title{font-size:12px;font-weight:800;text-align:center;margin-bottom:8px;color:#b45309;}
+.k-hint{font-size:11px;color:var(--text-weak);text-align:center;}
+.k-chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:8px;}
+.k-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  border:1.5px solid #e5edfb;background:#fbfdff;color:var(--text);
+  font-size:12px;font-weight:600;padding:4px 9px;border-radius:16px;cursor:pointer;
+  -webkit-user-select:none;user-select:none;font-family:inherit;transition:all .15s;
+}
+.k-chip .k-name{font-weight:700;}
+.k-chip .k-cnt{font-size:12px;color:#b45309;}
+.k-chip .k-op{
+  width:20px;height:20px;border-radius:50%;flex:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:800;line-height:1;
+  background:#e8f0fe;color:#2563eb;cursor:pointer;
+}
+.k-chip .k-op:active{transform:scale(.85);}
+.k-chip.on{
+  background:linear-gradient(135deg,#f59e0b,#fbbf24);border-color:transparent;
+  color:#fff;font-weight:800;box-shadow:0 2px 8px rgba(245,158,11,.35);
+}
+.k-chip.on .k-op{background:rgba(255,255,255,.35);color:#fff;}
+.k-chip.on .k-cnt{color:#fff;}
+/* 战绩页 X杀标记 */
+.pn .kbadge{
+  display:inline-block;margin-left:6px;font-size:11px;font-weight:800;
+  color:#b45309;background:#fef3c7;padding:1px 7px;border-radius:10px;vertical-align:1px;
+}
+/* 战绩页 KDA 与伤害/承伤/治疗/经济（仅 LOL 自动导入的局有；数据常显独占第三行） */
+.pn .kda{font-size:11px;font-weight:600;color:#6b7280;flex:none;}
+.pn .champ{
+  font-size:11px;font-weight:600;color:#1d4ed8;background:#eff6ff;
+  padding:1px 8px;border-radius:10px;flex:none;
+}
+.pn .eco{
+  display:block;flex-basis:100%;flex-grow:0;flex-shrink:0;
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:normal;
+}
+/* 战绩页比赛日筛选：18点前默认看昨晚，18点后默认看今晚，可任选日期 */
+.day-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;-webkit-overflow-scrolling:touch;}
+.day-chip{
+  flex:none;font-size:11px;font-weight:700;padding:4px 12px;border-radius:14px;
+  background:#f1f5f9;color:#475569;cursor:pointer;border:1px solid #e2e8f0;white-space:nowrap;
+}
+.day-chip:active{transform:scale(.92);}
+.day-chip.on{background:#2563eb;color:#fff;border-color:#2563eb;box-shadow:0 2px 6px rgba(37,99,235,.25);}
+/* 抽签分组卡片：失效倒计时 */
+.draw-countdown{text-align:center;font-size:11px;color:var(--text-weak);padding:6px 0 0;}
+/* 重抽投票徽标与提示（双击分组卡片投票，达半数服务器自动重抽） */
+.vote-chip{
+  display:inline-block;margin-top:8px;font-size:12px;font-weight:800;
+  color:#b45309;background:#fef3c7;border:1px solid #fde68a;padding:3px 12px;border-radius:14px;
+}
+.draw-vote-hint{margin-top:6px;font-size:11px;color:var(--text-weak);text-align:center;}
+/* ---------- 对局智能分析 ---------- */
+.an-title{font-size:14px;font-weight:800;margin-bottom:2px;}
+.an-sub{font-size:11px;color:var(--text-weak);margin-bottom:10px;}
+.an-card{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+.an-head{font-size:13px;font-weight:800;margin-bottom:6px;color:var(--text);}
+.an-row{display:flex;align-items:flex-start;gap:8px;padding:3px 0;}
+.an-tag{
+  flex:none;display:inline-block;font-size:11px;font-weight:700;
+  padding:2px 9px;border-radius:10px;margin-top:1px;white-space:nowrap;
+}
+.an-tag.green{background:#ecfdf5;color:#059669;}
+.an-tag.blue{background:#eff6ff;color:#2563eb;}
+.an-tag.red{background:#fef2f2;color:#dc2626;}
+.an-tag.orange{background:#fff7ed;color:#ea580c;}
+.an-val{font-size:12px;color:var(--text);line-height:1.6;word-break:break-all;min-width:0;}
+.history-item .h-undo{margin-top:8px;text-align:right;}
+.history-item .h-undo .btn{
+  font-size:11px;padding:6px 12px;border-radius:8px;
+  background:#f3f4f6;color:var(--text-weak);font-weight:700;
+}
+.record-pending-tip{margin-top:8px;font-size:11px;color:var(--warn);font-weight:700;}
+.history-item .h-btns{margin-top:8px;display:flex;gap:8px;justify-content:flex-end;}
+.history-item .hbtn{
+  border:none;cursor:pointer;font-family:inherit;
+  font-size:11px;padding:6px 12px;border-radius:8px;
+  background:#f3f4f6;color:var(--text-weak);font-weight:700;
+}
+.history-item .hbtn.record{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;box-shadow:0 2px 8px rgba(59,130,246,.3);}
+.history-item .hbtn.edit{background:#e8f1ff;color:#2563eb;}
+
+/* ---------- 结果录入弹层 ---------- */
+.modal-mask{
+  position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:100;
+  display:none;align-items:flex-end;justify-content:center;
+}
+.modal-mask.show{display:flex;animation:fade .2s;}
+.modal{
+  width:100%;max-width:520px;background:#fff;border-radius:22px 22px 0 0;
+  padding:20px 18px calc(24px + env(safe-area-inset-bottom));
+  max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  animation:slideup .28s cubic-bezier(.2,.9,.3,1);
+}
+.pick-modal .pick-tools{margin:0 0 10px;}
+.pick-modal .player-grid{max-height:46vh;overflow-y:auto;}
+.pick-modal .pick-confirm{flex:1;width:auto;}
+@keyframes slideup{from{transform:translateY(40px);opacity:.6;}to{transform:none;opacity:1;}}
+.modal .m-title{font-size:16px;font-weight:800;text-align:center;margin-bottom:4px;}
+.modal .m-sub{font-size:12px;color:var(--text-weak);text-align:center;margin-bottom:16px;}
+.modal .m-teams{display:flex;gap:10px;margin-bottom:16px;}
+.modal .m-team{flex:1;border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;}
+.modal .m-team .t{font-size:14px;font-weight:800;margin-bottom:6px;}
+.modal .m-team .names{font-size:11px;color:var(--text-weak);line-height:1.7;}
+.modal .m-team.selected{transform:scale(1.02);}
+.modal .m-team.selected.a{background:#dbeafe;border:2px solid #3b82f6;}
+.modal .m-team.selected.b{background:#fce7f3;border:2px solid #ec4899;}
+.modal .m-team:not(.selected){border:2px solid #e5e7eb;background:#f9fafb;}
+/* 同队统计弹窗 */
+.d-exp{
+  font-size:11px;color:var(--text-weak);background:#f6f9ff;
+  border-radius:10px;padding:8px 10px;margin-bottom:10px;line-height:1.6;
+}
+.d-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed #eef2f8;cursor:pointer;}
+.d-row:last-child{border-bottom:none;}
+.d-row:active{background:#f8fbff;}
+.d-row .d-name{width:86px;flex-shrink:0;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.d-row .d-bar{flex:1;height:8px;border-radius:4px;background:#eef2f8;position:relative;overflow:hidden;}
+.d-row .d-bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(135deg,#3b82f6,#6366f1);border-radius:4px;}
+.d-row .d-num{width:126px;flex-shrink:0;text-align:right;font-size:11px;color:var(--text-weak);font-weight:600;white-space:nowrap;}
+.d-row .d-num b{color:var(--primary-deep);}
+.d-row .d-num .wr{color:#0e7490;font-weight:800;}
+.d-row .d-pct{position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:800;color:#1e40af;}
+.d-row .d-pct.on{color:#fff;}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;left:50%;top:14%;transform:translateX(-50%);
+  background:rgba(17,24,39,.85);color:#fff;font-size:13px;font-weight:600;
+  padding:10px 20px;border-radius:24px;z-index:200;
+  opacity:0;pointer-events:none;transition:opacity .25s;max-width:86%;text-align:center;
+}
+.toast.show{opacity:1;}
+</style>
+<style>
+/* ---------- 分享链接条 ---------- */
+.share-bar{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#ecfdf5,#f0fdfa);border:1px solid #a7f3d0;
+  border-radius:12px;padding:8px 12px;margin-bottom:10px;
+}
+.share-bar .sb-label{
+  font-size:11px;color:#047857;font-weight:800;flex-shrink:0;line-height:1.3;
+}
+.share-bar .sb-url{
+  flex:1;min-width:0;font-size:11px;color:#065f46;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.share-bar .sb-btn{
+  border:none;background:#10b981;color:#fff;font-size:11px;font-weight:700;
+  padding:5px 10px;border-radius:8px;cursor:pointer;flex-shrink:0;
+}
+.share-bar.off{background:#fff7ed;border-color:#fed7aa;}
+.share-bar.off .sb-label{color:#c2410c;}
+.share-bar.off .sb-url{color:#9a3412;}
+/* ---------- 模式选择 ---------- */
+.mode-row{display:flex;gap:8px;margin-bottom:12px;}
+.mode-btn{
+  flex:1;padding:10px 0;border-radius:12px;border:1.5px solid #e5edfb;
+  background:#fbfdff;color:var(--text-weak);font-size:15px;font-weight:800;cursor:pointer;
+  font-family:inherit;transition:all .15s;-webkit-user-select:none;user-select:none;
+}
+.mode-btn:active{transform:scale(.97);}
+.mode-btn.active{
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px rgba(59,130,246,.35);
+}
+/* 抽签方式（均衡/随机） */
+.draw-mode-wrap{display:flex;gap:8px;margin-bottom:10px;}
+.draw-mode-btn{
+  flex:1;padding:9px 0;border-radius:11px;border:1.5px solid #e5edfb;
+  background:#fbfdff;color:var(--text-weak);font-size:13px;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .15s;-webkit-user-select:none;user-select:none;
+}
+.draw-mode-btn:active{transform:scale(.97);}
+.draw-mode-btn.active{
+  background:#e8f1ff;color:#2563eb;border-color:#93c5fd;box-shadow:0 3px 8px rgba(59,130,246,.12);
+}
+.noscore-tag{
+  display:inline-block;margin-top:12px;font-size:12px;font-weight:700;color:#b45309;
+  background:#fef3c7;padding:4px 14px;border-radius:20px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">
+      <div class="icon" id="logoIcon">5V5</div>
+      <div>
+        <h1>对战盒子</h1>
+        <p>胜 +5 · 负 −5 · 四杀：胜方全员 +1 / 败方全员 −1 · 五杀：±2（可叠加）</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-page="draw">抽签</div>
+    <div class="tab" data-page="players">玩家<span class="badge" id="playerCountBadge" style="display: block;">10</span></div>
+    <div class="tab" data-page="history">战绩<span class="badge" id="historyCountBadge" style="display: block;">27</span></div>
+  </div>
+
+  <!-- ============ 抽签页 ============ -->
+  <div class="page active" id="page-draw">
+    <div class="card pick-section" id="pickSection">
+      <div class="section-title" id="pickTitle">本局参赛玩家</div>
+      <p class="add-tip">选择玩家后随机分队；抽签只负责组队，不会更新积分。</p>
+      <button class="btn btn-primary" id="btnDraw" disabled>一键随机组队</button>
+    </div>
+
+    <div class="card draw-area">
+      <div class="shuffle-stage" id="shuffleStage">
+        <div class="shuffle-box" id="shuffleBox">洗牌中…</div>
+        <div class="shuffle-names" id="shuffleNames"></div>
+      </div>
+      <div class="team-cards" id="teamCards">
+        <div class="vs-row">
+          <div class="team team-a">
+            <div class="team-head"><span class="tname">A 队</span></div>
+            <div class="team-list" id="teamA"></div>
+          </div>
+          <div class="vs-mid"><div class="vs">VS</div></div>
+          <div class="team team-b">
+            <div class="team-head"><span class="tname">B 队</span></div>
+            <div class="team-list" id="teamB"></div>
+          </div>
+        </div>
+        <div class="fair-diff" id="fairTag"></div>
+        <div class="vote-chip" id="voteChip" style="display:none;"></div>
+        <div class="draw-vote-hint" id="voteHint">🔁 分组不满意？点「投票重抽」投一票，达半数解散分组重新选人</div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btnVoteDraw" style="width:100%;">🔁 投票重抽</button>
+        </div>
+        <div class="draw-countdown" id="drawCountdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 玩家页 ============ -->
+  <div class="page" id="page-players">
+    <div class="card">
+      <div class="section-title">添加玩家</div>
+      <div class="add-row">
+        <input id="newPlayerName" placeholder="输入昵称，回车添加" maxlength="10">
+        <button class="btn btn-primary" id="btnAddPlayer">添加</button>
+      </div>
+      <p class="add-tip">新玩家初始积分 0；数据全群共享，人人可见</p>
+    </div>
+
+    <div class="card">
+      <div class="section-title">积分排行榜
+        <span class="rank-mode-wrap">
+          <button class="rank-mode-btn" id="rankModeBtn" type="button">总榜 ▾</button>
+          <div class="rank-mode-menu" id="rankModeMenu" style="display:none;">
+            <div class="rm-item on" data-mode="all">🏆 总榜（三模式积分总和）</div>
+            <div class="rm-item" data-mode="3">3v3 榜</div>
+            <div class="rm-item" data-mode="4">4v4 榜</div>
+            <div class="rm-item" data-mode="5">5v5 榜</div>
+          </div>
+        </span>
+        <span class="rank-sort-wrap">
+          <select class="rank-sort" id="rankSortSel" aria-label="排行榜排序">
+            <option value="score">按积分</option>
+            <option value="winrate">按胜率</option>
+            <option value="kda">按KDA</option>
+          </select>
+        </span>
+      </div>
+      <div class="rank-list" id="rankList"></div>
+      <div class="empty-tip" id="rankEmpty" style="display:none;">
+        <span class="big">🏆</span>
+        还没有玩家，输入昵称添加第一位玩家吧
+      </div>
+      <div class="rank-tools">
+        <button class="btn btn-ghost" id="btnSortByScore">按积分排序</button>
+        <button class="btn btn-danger" id="btnClearScores">积分全部清零</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 战绩页 ============ -->
+  <div class="page" id="page-history">
+    <div class="card">
+      <div class="section-title">LOL 战绩同步</div>
+      <div class="draw-btn-wrap" id="lolSyncWrap">
+        <button class="btn btn-primary" id="btnLolSync" style="width:100%;">刷新 LOL 战绩并更新积分</button>
+        <p class="add-tip" style="margin:8px 0 0;">请在运行 LOL 的电脑上打开本机页面执行同步</p>
+      </div>
+    </div>
+    <div id="analyticsBox"></div>
+    <div class="day-chips" id="dayChips"></div>
+    <div class="card">
+      <div class="section-title">对战历史与积分变动</div>
+      <div id="historyList"></div>
+      <div class="record-empty empty-tip" id="historyEmpty" style="display:none;">
+        <span style="font-size:30px;display:block;margin-bottom:6px;">🏆</span>
+        还没有对战记录<br>在「战绩」页刷新 LOL 战绩后会自动导入并更新积分
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 抽签选人弹窗 -->
+<div class="modal-mask" id="pickMask">
+  <div class="modal pick-modal">
+    <div class="m-title">选择本局参赛玩家</div>
+    <div class="m-sub">从完整玩家列表中选择 6、8 或 10 人</div>
+    <div class="pick-tools">
+      <button class="btn btn-ghost" id="pickAll">全选</button>
+      <button class="btn btn-ghost" id="pickClear">清空</button>
+    </div>
+    <div class="player-grid" id="pickGrid"></div>
+    <div class="empty-tip" id="pickEmpty" style="display:none;">
+      <span class="big">🎮</span>
+      还没有玩家，请先到「玩家」页添加
+    </div>
+    <div class="pick-status">已选 <b id="pickCount">0</b> 人</div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" id="btnCancelPick">取消</button>
+      <button class="btn btn-primary pick-confirm" id="btnConfirmPick" disabled>随机组队</button>
+    </div>
+  </div>
+</div>
+
+<!-- 结果录入弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal">
+    <div class="m-title" id="modalTitle">谁是本局胜方？</div>
+    <div class="m-sub" id="modalSub">选胜方后自动更新积分榜</div>
+    <div class="m-teams">
+      <div class="m-team a" id="modalTeamA">
+        <div class="t">A 队</div>
+        <div class="names" id="modalNamesA"></div>
+      </div>
+      <div class="m-team b" id="modalTeamB">
+        <div class="t">B 队</div>
+        <div class="names" id="modalNamesB"></div>
+      </div>
+    </div>
+    <div class="kill-sec" id="killSection" style="display:none;">
+      <div class="k-title" id="killTitle"></div>
+      <div class="k-chips" id="killChips"></div>
+      <div class="k-title" id="pentaTitle" style="display:none;"></div>
+      <div class="k-chips" id="pentaChips" style="display:none;"></div>
+      <div class="k-hint" id="killHint">请先选择胜方</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" id="btnCancelRecord">取消</button>
+      <button class="btn btn-win" id="btnConfirmRecord">确认胜方</button>
+    </div>
+  </div>
+</div>
+
+<!-- 同队统计弹窗（随机性核查） -->
+<div class="modal-mask" id="detailMask">
+  <div class="modal">
+    <div class="m-title" id="detailTitle">同队统计</div>
+    <div class="m-sub" id="detailSub"></div>
+    <div id="detailBody"></div>
+    <div class="btn-row">
+      <button class="btn btn-cancel" id="btnCloseDetail">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= 全局状态 ================= */
+var players = [];
+var history = [];
+var pendingSet = {};        // 本局勾选玩家 id -> true
+var currentTeams = null;    // 最近一次抽签结果 {A:[], B:[]}
+var modalWinner = null;
+var modalGameId = null;     // 弹窗当前操作的对局 id
+var modalGameTeams = null;  // 弹窗当前对局队伍 {A:[], B:[]}
+var modalKillSet = {};      // 弹窗中勾选的四杀玩家 id -> 次数
+var modalPentaSet = {};     // 弹窗中勾选的五杀玩家 id -> 次数（仅 5v5）
+var toastTimer = null;
+var loading = true;
+var teamSize = 5;           // 当前对局：每队人数（= 选中总人数的一半，按勾选动态计算）
+var drawMode = 'random';      // 抽签页只保留随机分队
+var currentDrawType = 'balanced';  // 最近一次抽签方式（用于结果卡片展示）
+var drawVotes = 0;                 // 当前抽签的重抽票数（服务器共享，所有人可见）
+var drawThreshold = 0;             // 重抽达标票数（= 每队人数，即总人数一半）
+var drawSubmitting = false;         // 本端抽签结果提交中（避免 refresh 覆盖刚抽的分组）
+var rankMode = 'all';               // 积分榜当前模式：'all' 总榜（三模式均值）/ 3 / 4 / 5，默认总榜
+var sortKey = 'score';              // 排行榜排序：score 积分 / winrate 胜率 / kda K/D值
+function modeScore(p, mode){       // 取某模式的积分
+  return p['score' + (mode || teamSize)] || 0;
+}
+
+/* ================= 工具 ================= */
+function $(id){ return document.getElementById(id); }
+function shuffleArr(arr){
+  var a = arr.slice();
+  for(var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function toast(msg){
+  var t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function nowStr(){
+  var d = new Date();
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  return (d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+function voterId(){                 // 每台设备一个投票身份（存 localStorage，一人一票）
+  try{
+    var v = localStorage.getItem('elo_voter_id');
+    if(!v){
+      v = 'v' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+      localStorage.setItem('elo_voter_id', v);
+    }
+    return v;
+  }catch(e){ return 'v_anon_' + Date.now(); }
+}
+function api(url, method, body){
+  var opt = { method: method || 'GET', headers: {'Content-Type':'application/json'} };
+  if(body) opt.body = JSON.stringify(body);
+  return fetch(url, opt).then(function(r){ return r.json(); });
+}
+function teamSum(t){ return t.reduce(function(s, p){ return s + (p.score || 0); }, 0); }
+
+/* ================= 服务器同步 ================= */
+var _stateFetchTs = 0;   // 上次全量拉取时间（省流量：10 秒内的重复刷新直接用本地数据）
+function refresh(force){
+  if(!force && Date.now() - _stateFetchTs < 10000) return Promise.resolve();
+  _stateFetchTs = Date.now();
+  return api('/api/state').then(function(state){
+    players = state.players || [];
+    history = state.games || [];
+    restoreLastPick(state.last_pick || []);   // 打开页面时，把最近一次抽签选的人恢复勾选（全群共享）
+    renderAll();
+    renderSharedDraw(state.draw || null);   // 当前共享抽签：所有人刷新看到同一分组/票数/剩余时效
+  }).catch(function(){
+    toast('无法连接服务器，请检查服务是否启动');
+  });
+}
+/* 首次进入时把最近一次抽签的参赛名单恢复勾选；只恢复一次，之后用户手动改动不再覆盖 */
+var lastPickRestored = false;
+function restoreLastPick(arr){
+  if(lastPickRestored) return;
+  lastPickRestored = true;
+  if(!players || players.length === 0 || !Array.isArray(arr) || arr.length === 0) return;
+  var valid = {};
+  var ids = {};
+  players.forEach(function(p){ ids[String(p.id)] = true; });
+  arr.forEach(function(id){
+    if(ids[String(id)]) valid[String(id)] = true;   // 只恢复仍存在的玩家
+  });
+  if(Object.keys(valid).length === 0) return;
+  pendingSet = valid;
+  renderPickGrid();
+}
+/* 人员选择模块显隐：有有效抽签结果时隐藏，结果失效后显示 */
+function setPickVisible(v){ var el = $('pickSection'); if(el) el.style.display = v ? '' : 'none'; }
+/* 服务器共享的当前抽签分组：以服务器为唯一事实源，投票、达标重抽都在服务器完成 */
+function renderSharedDraw(d){
+  if(drawSubmitting) return;                 // 本端刚抽完还在提交，避免提交间隙被旧状态覆盖
+  if(!d){
+    if(currentTeams){                        // 服务器已无分组（被删/过期），本端同步收起
+      currentTeams = null;
+      if(drawTimer){ clearInterval(drawTimer); drawTimer = null; }
+      $('teamCards').classList.remove('show');
+    }
+    setPickVisible(true);                    // 无有效抽签 → 恢复显示人员选择
+    updateDrawBtn();                         // 无分组 → 恢复「开始抽签」
+    return;
+  }
+  var res = { A: d.teamA, B: d.teamB };
+  currentTeams = res;
+  currentDrawType = d.draw_type;
+  drawVotes = d.votes_count || 0;
+  drawThreshold = d.threshold || d.teamA.length;
+  renderTeams(res);
+  renderVoteChip();
+  $('teamCards').classList.add('show');
+  setPickVisible(false);                     // 有有效抽签 → 隐藏人员选择，只看结果
+  updateDrawBtn();                           // 有分组 → 禁用「开始抽签」
+  startDrawTimer(Math.max(0, (300 - (d.age || 0)) * 1000));
+}
+function renderVoteChip(){
+  var c = $('voteChip');
+  if(!currentTeams || !drawThreshold){ if(c) c.style.display = 'none'; return; }
+  c.style.display = 'inline-block';
+  c.textContent = '🔁 重抽 ' + drawVotes + '/' + drawThreshold;
+  var h = $('voteHint');
+  if(h) h.textContent = '🔁 分组不满意？双击分组卡片投重抽票，达 ' + drawThreshold + ' 票（半数）解散分组重新选人';
+}
+function renderAll(){
+  renderPickGrid();
+  renderPlayers();
+  renderHistory();
+  updateBadges();
+}
+
+/* ================= 抽签页 UI（不再有 3v3/4v4/5v5 档位，选几个就几人场） ================= */
+function applyModeUI(){ updatePickCount(); }
+/* 积分榜模式：'all' 总榜（大数字=三模式积分总和，小字=三模式均值）或 3/4/5 单一模式 */
+function rankScore(p){
+  if(rankMode === 'all') return (p.score3 || 0) + (p.score4 || 0) + (p.score5 || 0);
+  return modeScore(p, rankMode);
+}
+function rankModeKey(){ return rankMode === 'all' ? 'all' : String(rankMode); }
+function applyRankModeUI(){
+  var btn = $('rankModeBtn');
+  if(!btn) return;
+  btn.textContent = (rankMode === 'all' ? '总榜 ▾' : rankMode + 'v' + rankMode + ' 榜 ▾');
+  var items = document.querySelectorAll('#rankModeMenu .rm-item');
+  for(var i = 0; i < items.length; i++){
+    items[i].classList.toggle('on', items[i].getAttribute('data-mode') === rankModeKey());
+  }
+}
+$('rankModeBtn').addEventListener('click', function(e){
+  e.stopPropagation();
+  var m = $('rankModeMenu');
+  m.style.display = (m.style.display === 'block') ? 'none' : 'block';
+});
+document.querySelectorAll('#rankModeMenu .rm-item').forEach(function(it){
+  it.addEventListener('click', function(e){
+    e.stopPropagation();
+    var v = it.getAttribute('data-mode');
+    rankMode = (v === 'all') ? 'all' : parseInt(v, 10);
+    try{ localStorage.setItem('elo_rank_mode', v); }catch(e2){}
+    $('rankModeMenu').style.display = 'none';
+    applyRankModeUI();
+    renderPlayers();
+  });
+});
+document.addEventListener('click', function(){ var m = $('rankModeMenu'); if(m) m.style.display = 'none'; });
+
+/* ================= 分组算法（均衡配对蛇形 / 纯随机） =================
+   均衡：按积分降序两两配对，每轮由当前总分低的队先拿高顺位选手，适用于 3v3/4v4/5v5 */
+function balancedDraw(list){
+  var sorted = list.slice().sort(function(a, b){ return b.score - a.score; });
+  var A = [], B = [], sumA = 0, sumB = 0;
+  for(var i = 0; i < sorted.length; i += 2){
+    var first, second;
+    if(sumA <= sumB){ first = A; second = B; }
+    else{ first = B; second = A; }
+    var hi = sorted[i], lo = sorted[i + 1];
+    if(hi){
+      first.push(hi);
+      if(first === A) sumA += hi.score; else sumB += hi.score;
+    }
+    if(lo){
+      second.push(lo);
+      if(second === A) sumA += lo.score; else sumB += lo.score;
+    }
+  }
+  return { A: shuffleArr(A), B: shuffleArr(B) };
+}
+/* 纯随机：洗牌后对半分 */
+function randomDraw(list){
+  var all = shuffleArr(list);
+  var n = Math.floor(all.length / 2);
+  return { A: all.slice(0, n), B: all.slice(n) };
+}
+
+/* ================= 渲染：抽签页选择器 ================= */
+function renderPickGrid(){
+  var grid = $('pickGrid');
+  var empty = $('pickEmpty');
+  grid.innerHTML = '';
+  if(players.length === 0){
+    grid.style.display = 'none';
+    empty.style.display = 'block';
+    updatePickCount();
+    return;
+  }
+  grid.style.display = 'grid';
+  empty.style.display = 'none';
+  var sorted = players.slice().sort(function(a, b){ return b.score - a.score; });
+  sorted.forEach(function(p){
+    var div = document.createElement('div');
+    div.className = 'player-item' + (pendingSet[p.id] ? ' on' : '');
+    div.innerHTML =
+      '<div class="avatar">' + esc((p.name||'?').charAt(0)) + '</div>' +
+      '<div class="info"><div class="name">' + esc(p.name) + '</div></div>' +
+      '<div class="check">✓</div>';
+    div.addEventListener('click', function(){
+      if(pendingSet[p.id]) delete pendingSet[p.id];
+      else pendingSet[p.id] = true;
+      renderPickGrid();
+    });
+    grid.appendChild(div);
+  });
+  updatePickCount();
+}
+function updatePickCount(){
+  var n = 0;
+  for(var k in pendingSet) n++;
+  $('pickCount').textContent = n;
+  var m = Math.floor(n / 2);                 // 每队人数：6→3、8→4、10→5
+  $('pickTitle').textContent = n
+    ? ('已选 ' + n + ' 人 · ' + m + 'v' + m)
+    : '本局参赛玩家';
+  $('logoIcon').textContent = m + 'V' + m;
+  if($('btnConfirmPick')) $('btnConfirmPick').disabled = !!currentTeams || (n !== 6 && n !== 8 && n !== 10);
+  updateDrawBtn();
+}
+/* 打开选人弹窗：至少需要 6 名玩家，最终参赛人数在弹窗确认 */
+function updateDrawBtn(){
+  $('btnDraw').disabled = !!currentTeams || players.length < 6;
+}
+function pickAll(){
+  pendingSet = {};
+  players.forEach(function(p){ pendingSet[p.id] = true; });
+  renderPickGrid();
+}
+function pickClear(){ pendingSet = {}; renderPickGrid(); }
+function openPickModal(){
+  if(currentTeams){ toast('当前已有有效分组，请等待失效或投票重抽'); return; }
+  renderPickGrid();
+  $('pickMask').classList.add('show');
+}
+function closePickModal(){ $('pickMask').classList.remove('show'); }
+function confirmPick(){
+  var n = Object.keys(pendingSet).length;
+  if(n !== 6 && n !== 8 && n !== 10){
+    toast('请选择 6、8 或 10 名玩家');
+    return;
+  }
+  closePickModal();
+  doDraw();
+}
+
+/* ================= 渲染：玩家页 ================= */
+/* 按模式聚合每人场均战绩（KDA/伤害/承伤/治疗/经济），只统计该模式且带 KDA 的对局 */
+function buildModeStats(mode){
+  var st = {};
+  history.forEach(function(h){
+    if(!h.result) return;                                 // 未结算局不计入战绩/胜率
+    if(mode !== 'all' && h.teamA.length !== mode) return; // 总榜统计全部模式；单榜只统计该模式
+    [h.teamA, h.teamB].forEach(function(team, ti){
+      var won = (h.result === (ti === 0 ? 'A' : 'B'));
+      team.forEach(function(p){
+        var s = st[p.id] = st[p.id] || {k: 0, d: 0, a: 0, dmg: 0, tk: 0, heal: 0, gold: 0, g: 0, w: 0};
+        if(typeof p.kills === 'undefined') return;   // 手动局无战绩明细
+        s.g++;
+        if(won) s.w++;
+        s.k += p.kills; s.d += p.deaths; s.a += p.assists;
+        if(typeof p.dmg !== 'undefined') s.dmg += p.dmg;
+        if(typeof p.tk !== 'undefined') s.tk += p.tk;
+        if(typeof p.heal !== 'undefined') s.heal += p.heal;
+        if(typeof p.gold !== 'undefined') s.gold += p.gold;
+      });
+    });
+  });
+  return st;
+}
+function avgStatsText(s){
+  if(!s || !s.g) return '暂无战绩数据';
+  var g = s.g;
+  return '场均 ' + (s.k / g).toFixed(1) + '/' + (s.d / g).toFixed(1) + '/' + (s.a / g).toFixed(1) +
+    ' · 伤' + fmtWan(Math.round(s.dmg / g)) +
+    ' · 承' + fmtWan(Math.round(s.tk / g)) +
+    ' · 治' + fmtWan(Math.round(s.heal / g)) +
+    ' · 金' + fmtWan(Math.round(s.gold / g)) +
+    ' · ' + g + '局';
+}
+/* 平均每局 KDA 比值 = (K+A)/D：无死亡且有击杀/助攻视为 Perfect；无战绩数据返回 — */
+function kdaText(s){
+  if(!s || !s.g) return '—';
+  if(s.d === 0) return (s.k + s.a > 0) ? 'Perfect' : '0.0';
+  return ((s.k + s.a) / s.d).toFixed(1);
+}
+/* 胜率百分比（0~100，一位小数）；无对局数据记 0 */
+function winrateOf(s){
+  return (s && s.g > 0) ? (s.w / s.g * 100) : 0;
+}
+/* KDA 数值（用于排序/大数字）：零死亡且(击杀+助攻)>0 记满分 10，无数据记 0 */
+function kdaValue(s){
+  if(!s || !s.g) return 0;
+  if(s.d === 0) return (s.k + s.a > 0) ? 10 : 0;
+  return (s.k + s.a) / s.d;
+}
+/* 胜率展示：保留一位小数并加百分号 */
+function fmtWr(w){
+  return (Math.round(w * 10) / 10) + '%';
+}
+/* 本命/抠脚英雄：按玩家聚合各英雄的场次/胜场/KDA（仅 LOL 局有英雄与战绩数据）
+   本命 = 场次40% + 胜率30% + KDA30% 加权最高；抠脚 = 至少2场中反向分最高（玩得多+败率高+KDA低） */
+function buildHeroStats(){
+  var st = {};
+  history.forEach(function(h){
+    if(!h.result) return;
+    var aWin = h.result === 'A';
+    [h.teamA, h.teamB].forEach(function(team, ti){
+      var won = (ti === 0) ? aWin : !aWin;
+      team.forEach(function(p){
+        if(!p.champ || typeof p.kills === 'undefined') return;   // 手动/抽签局无英雄战绩
+        var by = st[p.id] = st[p.id] || {};
+        var s = by[p.champ] = by[p.champ] || {g:0, w:0, k:0, d:0, a:0};
+        s.g++;
+        if(won) s.w++;
+        s.k += p.kills; s.d += p.deaths; s.a += p.assists;
+      });
+    });
+  });
+  return st;
+}
+function heroTagHtml(hs){
+  if(!hs) return '';
+  var champs = Object.keys(hs);
+  if(champs.length === 0) return '';
+  var maxG = 0;                       // 该玩家用过的英雄中最大场次（场次归一基准）
+  champs.forEach(function(c){ if(hs[c].g > maxG) maxG = hs[c].g; });
+  /* 本命：场次 40% · 胜率 30% · KDA 30%（各折算 0~100 后加权）
+     - 场次分 = 场次/最大场次×100：玩得多的才是真本命，防一两局的运气英雄
+     - 胜率分 = 胜率×100
+     - KDA 分 = KDA×10（KDA≥10 记满分；零死亡有击杀/助攻记满分） */
+  var arr = champs.map(function(c){
+    var s = hs[c];
+    var kda = s.d === 0 ? ((s.k + s.a) > 0 ? 10 : 0) : (s.k + s.a) / s.d;
+    var gScore = (s.g / maxG) * 100;
+    var wScore = (s.w / s.g) * 100;
+    var kScore = Math.min(kda, 10) * 10;
+    var lossScore = (1 - s.w / s.g) * 100;            // 败率分：输得越多越高
+    return {
+      champ: c, g: s.g,
+      score: gScore * 0.4 + wScore * 0.3 + kScore * 0.3,          // 本命分
+      bad: gScore * 0.4 + lossScore * 0.3 + (100 - kScore) * 0.3  // 抠脚反向分
+    };
+  });
+  arr.sort(function(x, y){ return y.score - x.score; });
+  var html = '<span class="hero-tag best" title="本命英雄（场次40%+胜率30%+KDA30% 加权最高）">⚔ ' + esc(arr[0].champ) + '</span>';
+  /* 抠脚：至少玩过 2 场（防一两把的样本），按反向分最高 =
+     玩得多(场次40%) + 输得多(败率30%) + KDA差(反向30%) */
+  var pool = arr.filter(function(x){ return x.g >= 2; });
+  if(pool.length > 0){
+    pool.sort(function(x, y){ return y.bad - x.bad; });
+    var worst = pool[0];
+    if(worst.champ !== arr[0].champ){
+      html += '<span class="hero-tag worst" title="抠脚英雄（至少2场，场次40%+败率30%+KDA反向30% 加权最高）">🦶 ' + esc(worst.champ) + '</span>';
+    }
+  }
+  return html;
+}
+function renderPlayers(){
+  var list = $('rankList');
+  var empty = $('rankEmpty');
+  list.innerHTML = '';
+  var mstats = buildModeStats(rankMode);   // 当前榜单模式的胜率/场均（总榜 = 全部对局）
+  var hstats = buildHeroStats();           // 本命/天赋英雄（全部 LOL 对局，不分模式）
+  /* 排序主值：按当前下拉键取对应数值 */
+  function sortVal(p){
+    var st = mstats[p.id] || null;
+    if(sortKey === 'winrate') return winrateOf(st);
+    if(sortKey === 'kda') return kdaValue(st);
+    return rankScore(p);
+  }
+  var sorted = players.slice().sort(function(a, b){
+    var sa = sortVal(a), sb = sortVal(b);
+    if(sb !== sa) return sb - sa;                  // 主键：当前排序依据
+    var ra = rankScore(a), rb = rankScore(b);
+    if(rb !== ra) return rb - ra;                  // 次键：积分
+    return (a.name||'').localeCompare(b.name||'', 'zh');
+  });
+  if(players.length === 0){
+    empty.style.display = 'block';
+  }else{
+    empty.style.display = 'none';
+    sorted.forEach(function(p, i){
+      var row = document.createElement('div');
+      row.className = 'rank-row';
+      var rankCls = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : 'other';
+      var st = mstats[p.id] || null;
+      var big, sub;              /* 大数字=当前排序依据；小字=其余两项摘要 */
+      if(sortKey === 'winrate'){ big = fmtWr(winrateOf(st)); sub = '积分 ' + rankScore(p) + ' · KDA ' + kdaText(st); }
+      else if(sortKey === 'kda'){ big = kdaValue(st).toFixed(1); sub = '积分 ' + rankScore(p) + ' · 胜率 ' + fmtWr(winrateOf(st)); }
+      else{ big = rankScore(p); sub = '胜率 ' + fmtWr(winrateOf(st)) + ' · KDA ' + kdaText(st); }
+      var scoreHtml = '<div class="score-col"><div class="score-big">' + big + '</div>' +
+        '<div class="score-sub">' + sub + '</div></div>';
+      row.innerHTML =
+        '<div class="rank ' + rankCls + '">' + (i + 1) + '</div>' +
+        '<div class="avatar">' + esc((p.name||'?').charAt(0)) + '</div>' +
+        '<div class="info"><div class="name"><span class="n-txt">' + esc(p.name) + '</span>' + heroTagHtml(hstats[p.id]) + '</div>' +
+        '<div class="streak">' + esc(avgStatsText(mstats[p.id])) + '</div></div>' +
+        scoreHtml +
+        '<button class="del" data-id="' + p.id + '">×</button>';
+      row.querySelector('.del').addEventListener('click', function(e){ e.stopPropagation(); removePlayer(p.id); });
+      row.addEventListener('click', function(e){
+        if(e.target && e.target.closest && e.target.closest('.del')) return;
+        openPlayerDetail(p.id);
+      });
+      list.appendChild(row);
+    });
+  }
+updateBadges();
+}
+
+function removePlayer(id){
+  if(!confirm('确定删除该玩家？积分记录将一并清除。')) return;
+  api('/api/players/' + id, 'DELETE').then(function(){
+    delete pendingSet[id];
+    refresh(true);
+  });
+}
+
+/* ================= 同队统计（随机性核查） ================= */
+/* 统计玩家 pid 与其他所有人：共同对局数 n、同队次数 s、分模式局数 m */
+function buildPairStats(pid){
+  var st = {};
+  history.forEach(function(h){
+    var ta = h.teamA || [], tb = h.teamB || [];
+    var inA = ta.some(function(p){ return p.id === pid; });
+    var inB = tb.some(function(p){ return p.id === pid; });
+    if(!inA && !inB) return;
+    var m = ta.length;
+    var won = inA ? (h.result === 'A') : (h.result === 'B');   // 本人所在队是否获胜
+    function rec(list, same){
+      list.forEach(function(p){
+        if(p.id === pid) return;
+        var e = st[p.id] = st[p.id] || {n: 0, s: 0, sw: 0, sd: 0, m: {}};
+        e.n++;
+        if(same){
+          e.s++;
+          if(h.result){ e.sd++; if(won) e.sw++; }   // 同队胜率只统计已结算局
+        }
+        e.m[m] = (e.m[m] || 0) + 1;
+      });
+    }
+    rec(inA ? ta : tb, true);    // 同队队友
+    rec(inA ? tb : ta, false);   // 对面
+  });
+  return st;
+}
+/* 随机分组下与他人同队的理论期望：3v3=2/5、4v4=3/7、5v5=4/9，按共同局模式加权 */
+function expectedRate(m){
+  var num = 0, den = 0;
+  Object.keys(m).forEach(function(k){
+    var team = parseInt(k, 10);
+    if(team < 2) return;
+    num += m[k] * (team - 1) / (2 * team - 1);
+    den += m[k];
+  });
+  return den ? num / den : 0;
+}
+function openPlayerDetail(pid){
+  var me = null;
+  players.forEach(function(p){ if(p.id === pid) me = p; });
+  if(!me) return;
+  var st = buildPairStats(pid);
+  var totalMine = 0;
+  history.forEach(function(h){
+    [(h.teamA || []), (h.teamB || [])].forEach(function(t){
+      t.forEach(function(p){ if(p.id === pid){ totalMine++; } });
+    });
+  });
+  var rows = [];
+  players.forEach(function(p){
+    if(p.id === pid) return;
+    var e = st[p.id];
+    if(!e || !e.n) return;
+    rows.push({ id: p.id, name: p.name, n: e.n, s: e.s, sw: e.sw, sd: e.sd, rate: e.s / e.n });
+  });
+  rows.sort(function(a, b){
+    var wa = a.sd ? a.sw / a.sd : -1;   // 同队胜率（无已结算局视为 -1 排最后）
+    var wb = b.sd ? b.sw / b.sd : -1;
+    if(wb !== wa) return wb - wa;       // 主键：同队胜率降序
+    return b.n - a.n;                   // 次键：同队局数多的在前
+  });
+  $('detailTitle').textContent = me.name + ' · 同队统计';
+  $('detailSub').textContent = '共参与 ' + totalMine + ' 局 · 与 ' + rows.length + ' 人同场过；柱 = 同队比例，右侧 = 与你同队时的胜率，点击行可切换对方视角';
+  var html = '<div class="d-exp">🎲 随机分组的理论同队率：3v3 ≈ 40%、4v4 ≈ 42.9%、5v5 ≈ 44.4%。柱状图 = 与你同队的比例，右侧 = 与你同队时的胜率（仅统计已结算对局）。小幅波动属正常，长期明显偏离才说明异常。</div>';
+  if(rows.length === 0){
+    html += '<div class="empty-tip">暂无共同对局</div>';
+  }else{
+    rows.forEach(function(r){
+      var pct = Math.round(r.rate * 100);
+      var wr = r.sd ? Math.round(r.sw / r.sd * 100) : null;
+      var wrTxt = (wr === null) ? '胜率 —' : '胜率 ' + wr + '%';
+      html += '<div class="d-row" data-id="' + esc(r.id || '') + '">' +
+        '<span class="d-name">' + esc(r.name) + '</span>' +
+        '<span class="d-bar"><i style="width:' + pct + '%"></i><b class="d-pct' + (pct >= 60 ? ' on' : '') + '">' + pct + '%</b></span>' +
+        '<span class="d-num"><b>' + r.s + '</b> 次 · <span class="wr">' + wrTxt + '</span></span>' +
+      '</div>';
+    });
+  }
+  $('detailBody').innerHTML = html;
+  var drs = $('detailBody').querySelectorAll('.d-row');
+  for(var di = 0; di < drs.length; di++){
+    (function(el){
+      el.addEventListener('click', function(){
+        var nid = el.getAttribute('data-id');
+        if(nid) openPlayerDetail(nid);   // 点击行切换查看对方视角
+      });
+    })(drs[di]);
+  }
+  $('detailMask').classList.add('show');
+}
+
+/* ================= 渲染：战绩页 ================= */
+var selDay = null;   // 当前选中比赛日：null=自动默认(按当前时间)，'all'=全部，'MM-DD'=指定日
+var selDayAuto = true;   // true=未手动选过（跟随时间自动默认），手动点选后置 false 直到刷新页面
+function currentDayKey(){
+  // 今天的比赛日：18 点后归今天（今晚），18 点前归昨天（即"昨晚"）
+  var n = new Date();
+  var p = function(x){ return (x < 10 ? '0' : '') + x; };
+  var today = p(n.getMonth() + 1) + '-' + p(n.getDate());
+  if(n.getHours() >= 18) return today;
+  return prevDayStr(today);
+}
+function renderDayChips(allKeys){
+  var wrap = $('dayChips');
+  if(!wrap) return;
+  if(allKeys.length === 0){ wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = 'flex';
+  var html = '<span class="day-chip' + (selDay === 'all' ? ' on' : '') + '" data-day="all">全部</span>';
+  allKeys.forEach(function(k){
+    html += '<span class="day-chip' + (selDay === k ? ' on' : '') + '" data-day="' + k + '">🗓 ' + k + ' 晚</span>';
+  });
+  wrap.innerHTML = html;
+  var chips = wrap.querySelectorAll('.day-chip');
+  for(var i = 0; i < chips.length; i++){
+    (function(c){
+      c.addEventListener('click', function(){
+        selDay = c.getAttribute('data-day');
+        selDayAuto = false;
+        renderHistory();
+      });
+    })(chips[i]);
+  }
+}
+function renderHistory(){
+  var box = $('historyList');
+  var empty = $('historyEmpty');
+  box.innerHTML = '';
+  if(history.length === 0){
+    selDay = null;
+    renderDayChips([]);
+    renderAnalytics();
+    empty.style.display = 'block';
+    $('historyCountBadge').style.display = 'none';
+    return;
+  }
+  // 比赛日分组（含未录入结果的局）
+  var daySet = {};
+  history.forEach(function(h){ var k = gameDayKey(h); if(k) daySet[k] = true; });
+  var allKeys = Object.keys(daySet).sort().reverse();
+  // 校正选中日：
+  // 1) 未手动选过（自动模式）或所选日已无记录 → 按当前时间默认（18点前看昨晚、18点后看今晚），该日无记录则回退到最近有记录的一天
+  // 2) 手动选过且该日仍有记录 → 尊重用户选择不动
+  if(selDayAuto || selDay === null || (selDay !== 'all' && allKeys.indexOf(selDay) < 0)){
+    var dflt = currentDayKey();
+    selDay = (allKeys.indexOf(dflt) >= 0) ? dflt : (allKeys[0] || 'all');
+  }
+  renderDayChips(allKeys);
+  renderAnalytics();
+  var html = '';
+  var shown = 0;
+  for(var i = history.length - 1; i >= 0; i--){
+    if(selDay !== 'all' && gameDayKey(history[i]) !== selDay) continue;   // idx 保持全量索引，撤销/修改不受筛选影响
+    html += renderHistoryItem(history[i], i);
+    shown++;
+  }
+  box.innerHTML = html;
+  empty.style.display = shown === 0 ? 'block' : 'none';
+  /* 条目操作：录入/修改结果、撤销（动态绑定，避免 inline onclick 无法访问 IIFE 内函数） */
+  var mods = box.querySelectorAll('.h-mod');
+  for(var mi = 0; mi < mods.length; mi++){
+    mods[mi].addEventListener('click', function(){
+      openRecordModal(parseInt(this.getAttribute('data-gid'), 10));
+    });
+  }
+  var undos = box.querySelectorAll('.h-undo');
+  for(var ui = 0; ui < undos.length; ui++){
+    undos[ui].addEventListener('click', function(){
+      undoHistory(parseInt(this.getAttribute('data-idx'), 10));
+    });
+  }
+}
+/* ================= 对局智能分析（比赛日 = 当天 18:00 ~ 次日 06:00）================== */
+function prevDayStr(mmdd){
+  var m = /^(\d{1,2})-(\d{1,2})$/.exec(mmdd);
+  if(!m) return mmdd;
+  var d = new Date(2026, parseInt(m[1], 10) - 1, parseInt(m[2], 10));
+  d.setDate(d.getDate() - 1);
+  var p = function(x){ return (x < 10 ? '0' : '') + x; };
+  return p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function gameDayKey(h){
+  var m = /^(\d{2})-(\d{2}) (\d{2}):/.exec(h.time || '');
+  if(!m) return null;
+  if(parseInt(m[3], 10) >= 18) return m[1] + '-' + m[2];
+  return prevDayStr(m[1] + '-' + m[2]);   // 次日凌晨 00~06 点与白天归前一晚
+}
+function anRow(color, tag, text){
+  return '<div class="an-row"><span class="an-tag ' + color + '">' + tag + '</span><span class="an-val">' + esc(text) + '</span></div>';
+}
+/* 分析卡片四榜单：后端存档行 tag → 页面样式 */
+var AN_TAGS = {
+  bestPair:  {color: 'green',  label: '👬 最佳拍档'},
+  best:      {color: 'blue',   label: '💪 最强大腿'},
+  worst:     {color: 'red',    label: '🐷 罪魁祸首'},
+  worstPair: {color: 'orange', label: '🤝 最佳损友'}
+};
+function renderAnalytics(){
+  var box = $('analyticsBox');
+  if(!box) return;
+  // 读后端存档：每局对战自动叠加重算、每晚凌晨 3 点定版前一晚（避免前端重复实现算法）
+  api('/api/analytics').then(function(res){
+    if(!res || !res.ok || !res.days){ box.innerHTML = ''; box.style.display = 'none'; return; }
+    var days = res.days;
+    if(selDay && selDay !== 'all'){ days = days.filter(function(d){ return d.day === selDay; }); }   // 跟随战绩页选中日期
+    if(days.length === 0){ box.innerHTML = ''; box.style.display = 'none'; return; }
+    var html = '<div class="card"><div class="an-title">📊 对局智能分析</div>' +
+               '<div class="an-sub">战力 = (KDA×40% + 伤害×15% + 承伤×15% + 治疗×15% + 经济×15%)×胜率</div>';
+    days.forEach(function(d){
+      html += '<div class="an-card"><div class="an-head">🗓 ' + d.day + ' 晚 · ' + d.games + ' 局</div>';
+      (d.rows || []).forEach(function(r){
+        var t = AN_TAGS[r.tag] || {color: 'blue', label: r.tag};
+        html += anRow(t.color, t.label, r.text);
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+    box.style.display = 'block';
+  }).catch(function(){
+    box.innerHTML = '';
+    box.style.display = 'none';
+  });
+}
+/* 战绩页每人伤害/经济数字缩写：36260 -> 3.6万，低于 1 万显示原数 */
+function fmtWan(n){
+  n = Number(n) || 0;
+  if(n >= 10000) return (Math.round(n / 1000) / 10) + '万';
+  return String(n);
+}
+function teamNamesHtml(team, win, quadraIds, pentaIds){
+  // 一人一行只显示名字；胜负由背景色与底部文字体现；四杀/五杀者分别附标记
+  var cls = win === null ? '' : (win ? 'win' : 'lose');
+  var rows = team.map(function(p){
+    var qc = 0, pc = 0;
+    if(quadraIds){ for(var i = 0; i < quadraIds.length; i++){ if(quadraIds[i] === p.id) qc++; } }
+    if(pentaIds){ for(var j = 0; j < pentaIds.length; j++){ if(pentaIds[j] === p.id) pc++; } }
+    var badge = (qc > 0 ? '<span class="kbadge">⚡四杀' + (qc > 1 ? '×' + qc : '') + '</span>' : '') +
+                (pc > 0 ? '<span class="kbadge">⚡五杀' + (pc > 1 ? '×' + pc : '') + '</span>' : '');
+    var kda = (typeof p.kills !== 'undefined')
+      ? '<span class="kda">' + p.kills + '/' + p.deaths + '/' + p.assists + '</span>' : '';
+    var champ = p.champ ? '<span class="champ">' + esc(p.champ) + '</span>' : '';
+    var eco = (typeof p.dmg !== 'undefined')
+      ? '<span class="kda eco">伤' + fmtWan(p.dmg) + (typeof p.tk !== 'undefined' ? ' · 承' + fmtWan(p.tk) : '') + (typeof p.heal !== 'undefined' ? ' · 治' + fmtWan(p.heal) : '') + ' · 金' + fmtWan(p.gold) + '</span>' : '';
+    var sub = (kda || champ || eco) ? '<span class="p-sub">' + kda + champ + eco + '</span>' : '';
+    return '<div class="p-row"><span class="pn"><span class="p-name">' + esc(p.name || '') + badge + '</span>' + sub + '</span></div>';
+  }).join('');
+  var res = win === null ? '待录入胜负' : (win ? '本场胜' : '本场负');
+  return '<div class="h-team ' + cls + '"><div class="names">' + rows + '</div>' +
+         '<small>' + res + '</small></div>';
+}
+function renderHistoryItem(h, idx){
+  var hasResult = !!h.result;
+  var aWin = hasResult ? (h.result === 'A') : null;
+  var bWin = hasResult ? (h.result === 'B') : null;
+  var way = h.draw_type === 'random' ? '随机' : (h.draw_type === 'lol' ? 'LOL自动' : '均衡');
+  var quadraIds = h.kill_ids || [];     // 四杀标记
+  var pentaIds = h.penta_ids || [];     // 五杀标记（仅 5v5）
+  var html =
+    '<div class="history-item' + (hasResult ? '' : ' no-res') + '">' +
+      '<div class="h-head"><span>第 ' + (idx + 1) + ' 局 · ' + h.teamA.length + 'v' + h.teamB.length + ' ' + way + '对局</span><span>' +
+        esc(h.time || '') + '</span></div>' +
+      '<div class="h-teams">' +
+        teamNamesHtml(h.teamA, aWin, quadraIds, pentaIds) +
+        '<div class="h-vs">VS</div>' +
+        teamNamesHtml(h.teamB, bWin, quadraIds, pentaIds) +
+      '</div>' +
+      '<div class="h-act" style="display:none;">' +
+        (hasResult
+          ? '<button class="h-btn h-mod" data-gid="' + h.id + '">✏️ 修改结果</button>' +
+            '<button class="h-btn h-undo" data-idx="' + idx + '">↩️ 撤销</button>'
+          : '<button class="h-btn h-mod" data-gid="' + h.id + '">✅ 录入胜负</button>') +
+      '</div>' +
+    '</div>';
+  return html;
+}
+
+/* ================= 抽签 ================= */
+function doDraw(){
+  var ids = Object.keys(pendingSet);
+  var pool = players.filter(function(p){ return ids.indexOf(String(p.id)) >= 0; });
+  var n = pool.length;
+  if(n !== 6 && n !== 8 && n !== 10){
+    toast('请勾选 6、8 或 10 人再抽签（当前 ' + n + ' 人，只支持 3v3/4v4/5v5）');
+    return;
+  }
+  teamSize = n / 2;                 // 每队人数：6→3、8→4、10→5
+  /* 多人同时在线：先问服务器当前是否已有有效分组（其他人可能已抽完，本端还没同步到）。
+     有 → 直接同步该分组并拦截本次抽签；无 → 才允许本端抽签。 */
+  api('/api/state').then(function(s){
+    if(s && s.draw){
+      renderSharedDraw(s.draw);   // 把服务器已有分组同步到本端（含倒计时、按钮禁用、隐藏选人区）
+      toast('已有有效抽签分组，5 分钟内不能再抽；如不满意可投票重抽');
+      return;
+    }
+    startDrawFlow(pool);
+  }).catch(function(){
+    toast('无法连接服务器，请检查服务是否启动');
+  });
+}
+function startDrawFlow(pool){
+  // 归一化：取当前模式积分（score3/score4/score5 → score）供分组、展示与快照
+  var norm = pool.map(function(p){
+    return { id: p.id, name: p.name, score: modeScore(p) };
+  });
+  $('btnDraw').disabled = true;
+  var stage = $('shuffleStage');
+  var cards = $('teamCards');
+  cards.classList.remove('show');
+  stage.classList.add('show');
+  var namesBox = $('shuffleNames');
+  var chars = ['🎮','⚔️','🎲','🏆','🔥'];
+  var tick = 0;
+  var anim = setInterval(function(){
+    var sample = shuffleArr(pool).slice(0, 6);
+    $('shuffleBox').textContent = '洗牌中 ' + chars[tick % chars.length];
+    namesBox.textContent = sample.map(function(p){ return p.name; }).join(' · ');
+    tick++;
+  }, 120);
+
+  setTimeout(function(){
+    clearInterval(anim);
+    var res = (drawMode === 'random') ? randomDraw(norm) : balancedDraw(norm);
+    currentTeams = res;
+    currentDrawType = drawMode;
+    renderTeams(res);
+    stage.classList.remove('show');
+    cards.classList.add('show');
+    setPickVisible(false);                     // 抽签结果出来 → 隐藏人员选择，只看分组
+    updateDrawBtn();                     // 存在有效分组 → 禁用「开始抽签」（需待分组失效/删除后恢复）
+    startDrawTimer();   // 5 分钟后自动失效
+    drawVotes = 0;
+    drawThreshold = teamSize;
+    renderVoteChip();
+    submitDrawToServer();   // 分组同步到服务器：其他人点刷新即可看到同一分组
+    toast(drawMode === 'random'
+      ? '随机分组完成，5 分钟内有效；胜负将由数据源同步自动记录'
+      : '抽签完成，5 分钟内有效；胜负将由数据源同步自动记录');
+  }, 1800);
+}
+
+/* ===== 抽签结果 5 分钟失效：抽签只是赛前分组展示，不入库不录胜负，对局由数据源同步 ===== */
+var drawDeadline = 0;
+var drawTimer = null;
+function startDrawTimer(remainMs){
+  drawDeadline = Date.now() + (typeof remainMs === 'number' ? remainMs : 5 * 60 * 1000);
+  if(drawTimer) clearInterval(drawTimer);
+  var cd = $('drawCountdown');
+  drawTimer = setInterval(function(){
+    if(!currentTeams){ clearInterval(drawTimer); drawTimer = null; return; }
+    var left = drawDeadline - Date.now();
+    if(left <= 0){
+      currentTeams = null;
+      clearInterval(drawTimer);
+      drawTimer = null;
+      $('teamCards').classList.remove('show');
+      var vc = $('voteChip');
+      if(vc) vc.style.display = 'none';
+      setPickVisible(true);                     // 抽签倒计时结束 → 恢复显示人员选择
+      updateDrawBtn();                          // 分组失效 → 恢复「开始抽签」
+      toast('⌛ 本次抽签分组已失效（超过 5 分钟），需要请重新抽签');
+      return;
+    }
+    var mm = Math.floor(left / 60000);
+    var ss = Math.floor((left % 60000) / 1000);
+      if(cd) cd.textContent = '⏳ 本次分组 ' + mm + ':' + (ss < 10 ? '0' : '') + ss + ' 后自动失效，可点「投票重抽」解散重选';
+  }, 1000);
+}
+function removeDrawNow(){
+  api('/api/draw', 'DELETE').catch(function(){});   // 服务器同步删除：所有人刷新后消失
+  currentTeams = null;
+  if(drawTimer){ clearInterval(drawTimer); drawTimer = null; }
+  var cd = $('drawCountdown');
+  if(cd) cd.textContent = '';
+  $('teamCards').classList.remove('show');
+  updateDrawBtn();                                 // 删除分组 → 恢复「开始抽签」
+  toast('已删除本次抽签分组');
+}
+/* 分组提交服务器（共享展示的源头）；失败提示但本端展示不受影响 */
+function submitDrawToServer(){
+  drawSubmitting = true;
+  api('/api/draw/submit', 'POST', {
+    drawType: currentDrawType,
+    mode: currentTeams.A.length,
+    teamA: currentTeams.A,
+    teamB: currentTeams.B
+  }).then(function(r){
+    drawSubmitting = false;
+    if(!r || !r.ok) toast((r && r.msg) ? ('分组同步失败: ' + r.msg) : '分组同步失败，其他人可能看不到');
+  }).catch(function(){
+    drawSubmitting = false;
+    toast('分组同步失败（服务器不可达），其他人可能看不到');
+  });
+}
+/* 双击分组卡片 = 投重抽票；达半数服务器直接重抽，前端刷新即可看到新分组 */
+function voteRedraw(){
+  if(!currentTeams){ toast('当前没有抽签分组'); return; }
+  if(drawSubmitting){ toast('分组同步中，稍后再投'); return; }
+  api('/api/draw/vote', 'POST', { voter: voterId() }).then(function(r){
+    if(!r || !r.ok){ toast((r && r.msg) ? r.msg : '投票失败'); return; }
+    if(r.met){
+      refresh(true).then(function(){ toast('✅ 半数以上同意，分组已解散，请重新选人抽签'); });
+    }else{
+      drawVotes = r.votes;
+      drawThreshold = r.threshold;
+      renderVoteChip();
+      toast('已投重抽票 ' + r.votes + '/' + r.threshold + '，达标后解散分组重新选人');
+    }
+  }).catch(function(){ toast('投票失败（服务器不可达）'); });
+}
+
+function renderTeams(res){
+  var A = res.A, B = res.B;
+  $('teamA').innerHTML = '';
+  $('teamB').innerHTML = '';
+  A.forEach(function(p, i){ $('teamA').appendChild(teamRow(i, p)); });
+  B.forEach(function(p, i){ $('teamB').appendChild(teamRow(i, p)); });
+  var m = A.length;
+  var tag = $('fairTag');
+  tag.style.display = 'inline-block';
+  tag.className = 'fair-diff';
+  tag.textContent = (currentDrawType === 'random')
+    ? '🎲 ' + m + 'v' + m + ' 随机对局'
+    : '⚖️ ' + m + 'v' + m + ' 均衡对局';
+}
+function teamRow(i, p){
+  var row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = '<div class="no">' + (i + 1) + '</div><div class="n">' + esc(p.name || '') + '</div>';
+  return row;
+}
+
+/* ================= 战绩录入 / 修改 =================
+   gid 传入时操作指定对局（战绩页按钮）；
+   不传时自动找最近一局待录入的（抽签页按钮，刷新后依然可用） */
+function openRecordModal(gid){
+  var g = null;
+  if(typeof gid === 'number'){
+    for(var i = 0; i < history.length; i++){
+      if(history[i].id === gid){ g = history[i]; break; }
+    }
+  }else{
+    for(var j = history.length - 1; j >= 0; j--){
+      if(!history[j].result){ g = history[j]; break; }
+    }
+    if(!g){
+      toast('暂无待录入的对局；已录入的可在「战绩」页点「修改结果」');
+      return;
+    }
+  }
+  if(!g){
+    refresh(true);
+    toast('该对局不存在，列表已刷新');
+    return;
+  }
+  modalGameId = g.id;
+  modalWinner = g.result || null;
+  modalGameTeams = { A: g.teamA, B: g.teamB };
+  modalKillSet = {};
+  modalPentaSet = {};
+  var m = g.teamA.length;
+  var way = g.draw_type === 'random' ? '随机' : (g.draw_type === 'lol' ? 'LOL自动' : '均衡');
+  // X杀加成：4v4 仅四杀；5v5 四杀与五杀都可标（3v3 无加成）
+  var hasQuadra = (m === 4 || m === 5);
+  var hasPenta = (m === 5);
+  $('killSection').style.display = (hasQuadra || hasPenta) ? 'block' : 'none';
+  $('killTitle').style.display = hasQuadra ? '' : 'none';
+  $('killChips').style.display = hasQuadra ? '' : 'none';
+  $('pentaTitle').style.display = hasPenta ? '' : 'none';
+  $('pentaChips').style.display = hasPenta ? '' : 'none';
+  $('killTitle').textContent = '⚡ 四杀触发 · 每次胜方全员 +1 · 败方全员 −1（同一人可多次标记叠加）';
+  $('pentaTitle').textContent = '⚡ 五杀触发 · 每次胜方全员 +2 · 败方全员 −2（五杀已含四杀，勿再勾下方四杀）';
+  if(hasQuadra){
+    var kids = g.kill_ids || [];   // 存库格式：id 重复出现 = 同人多次标记
+    for(var ki = 0; ki < kids.length; ki++){
+      modalKillSet[kids[ki]] = (modalKillSet[kids[ki]] || 0) + 1;
+    }
+  }
+  if(hasPenta){
+    var pids = g.penta_ids || [];  // 五杀标记：重复出现 = 同人多次
+    for(var pj = 0; pj < pids.length; pj++){
+      modalPentaSet[pids[pj]] = (modalPentaSet[pids[pj]] || 0) + 1;
+    }
+  }
+  $('modalTitle').textContent = g.result ? '修改本局胜方' : '谁是本局胜方？';
+  $('modalSub').innerHTML = '【' + m + 'v' + m + ' ' + way + '对局】选胜方后自动更新 ' + m + 'v' + m + ' 积分榜';
+  $('modalNamesA').innerHTML = g.teamA.map(function(p){
+    return '<div class="m-row">' + esc(p.name) + '</div>';
+  }).join('');
+  $('modalNamesB').innerHTML = g.teamB.map(function(p){
+    return '<div class="m-row">' + esc(p.name) + '</div>';
+  }).join('');
+  $('modalTeamA').classList.toggle('selected', g.result === 'A');
+  $('modalTeamB').classList.toggle('selected', g.result === 'B');
+  renderKillChips();   // 立即渲染加成勾选（预填修改结果时的 kill_ids）
+  $('modalMask').style.display = 'flex';
+}
+/* 渲染 X杀加成选择片：只列当前胜方队员；四杀组与五杀组分别渲染 */
+function renderChipGroup(wrapId, set, team){
+  var wrap = $(wrapId);
+  if(!wrap) return;
+  wrap.innerHTML = '';                   // 先清空，避免隐藏组残留上一次的勾选
+  if(wrap.style.display === 'none') return;
+  team.forEach(function(p){
+    var cnt = set[p.id] || 0;
+    var chip = document.createElement('div');
+    chip.className = 'k-chip' + (cnt > 0 ? ' on' : '');
+    chip.innerHTML = '<span class="k-op k-minus">−</span><span class="k-name">' + esc(p.name) + (cnt > 0 ? ' <b class="k-cnt">×' + cnt + '</b>' : '') + '</span><span class="k-op k-plus">+</span>';
+    chip.querySelector('.k-minus').addEventListener('click', function(e){
+      e.stopPropagation();
+      if(set[p.id]){
+        set[p.id]--;
+        if(set[p.id] <= 0) delete set[p.id];
+        renderKillChips();
+      }
+    });
+    chip.querySelector('.k-plus').addEventListener('click', function(e){
+      e.stopPropagation();
+        set[p.id] = (set[p.id] || 0) + 1;
+        renderKillChips();
+    });
+    wrap.appendChild(chip);
+  });
+}
+function renderKillChips(){
+  if($('killSection').style.display === 'none') return;   // 本场无四杀/五杀加成
+  if(!modalGameTeams) return;
+  if(!modalWinner){
+    $('killHint').style.display = 'block';
+    $('killChips').innerHTML = '';
+    $('pentaChips').innerHTML = '';
+    return;
+  }
+  $('killHint').style.display = 'none';
+  var team = modalWinner === 'A' ? modalGameTeams.A : modalGameTeams.B;
+  renderChipGroup('killChips', modalKillSet, team);
+  renderChipGroup('pentaChips', modalPentaSet, team);
+}
+/* 胜方变化：加成勾选仅保留新胜方队员 */
+function onWinnerChange(){
+  if(modalGameTeams && modalWinner){
+    var team = modalWinner === 'A' ? modalGameTeams.A : modalGameTeams.B;
+    var ids = {};
+    team.forEach(function(p){ ids[p.id] = true; });
+    for(var k in modalKillSet){
+      if(!ids[k]) delete modalKillSet[k];
+    }
+    for(var k2 in modalPentaSet){
+      if(!ids[k2]) delete modalPentaSet[k2];
+    }
+  }
+  renderKillChips();
+}
+$('modalTeamA').addEventListener('click', function(){
+  modalWinner = 'A';
+  $('modalTeamA').classList.add('selected');
+  $('modalTeamB').classList.remove('selected');
+  onWinnerChange();
+});
+$('modalTeamB').addEventListener('click', function(){
+  modalWinner = 'B';
+  $('modalTeamB').classList.add('selected');
+  $('modalTeamA').classList.remove('selected');
+  onWinnerChange();
+});
+function confirmRecord(){
+  if(!modalWinner || modalGameId === null) return;
+  var g = null;
+  for(var i = 0; i < history.length; i++){
+    if(history[i].id === modalGameId){ g = history[i]; break; }
+  }
+  var gm = g ? g.teamA.length : 5;
+  var winName = modalWinner === 'A' ? 'A 队' : 'B 队';
+  var killIds = [];
+  for(var k in modalKillSet){          // 次数展开：同一 id 重复出现 = 多次标记
+    for(var c = 0; c < modalKillSet[k]; c++) killIds.push(k);
+  }
+  var pentaIds = [];
+  for(var k2 in modalPentaSet){        // 五杀标记同样展开
+    for(var c2 = 0; c2 < modalPentaSet[k2]; c2++) pentaIds.push(k2);
+  }
+  api('/api/games/' + modalGameId + '/result', 'POST', { result: modalWinner, killIds: killIds, pentaIds: pentaIds }).then(function(r){
+    if(r && r.ok){
+      $('modalMask').style.display = 'none';
+      modalGameId = null;
+      modalGameTeams = null;
+      modalKillSet = {};
+      modalPentaSet = {};
+      currentTeams = null;
+      $('teamCards').classList.remove('show');
+      refresh(true);
+      toast(winName + '胜！积分已更新（' + gm + 'v' + gm + ' 榜）');
+    }else if(r && r.msg === '对局不存在'){
+      $('modalMask').style.display = 'none';
+      modalGameId = null;
+      refresh(true);
+      toast('该对局已被撤销或删除，列表已刷新');
+    }else{
+      toast((r && r.msg) || '录入失败');
+    }
+  });
+}
+
+/* ================= 撤销本局 ================= */
+function undoHistory(idx){
+  var h = history[idx];
+  if(!h) return;
+  var msg = '撤销第 ' + (idx + 1) + ' 局？将回退该局 ' + h.teamA.length + 'v' + h.teamA.length + ' 积分变动。';
+  if(!confirm(msg)) return;
+  api('/api/games/' + h.id + '/undo', 'POST').then(function(r){
+    if(r && r.ok){
+      currentTeams = null;
+      refresh(true);
+      toast('已撤销第 ' + (idx + 1) + ' 局');
+    }else if(r && r.msg === '对局不存在'){
+      currentTeams = null;
+      refresh(true);
+      toast('该对局已被其他人撤销，列表已刷新');
+    }else{
+      toast((r && r.msg) || '撤销失败');
+    }
+  });
+}
+
+/* ================= 徽标 ================= */
+function updateBadges(){
+  var pb = $('playerCountBadge');
+  if(players.length > 0){
+    pb.textContent = players.length;
+    pb.style.display = 'block';
+  }else{
+    pb.style.display = 'none';
+  }
+  var hb = $('historyCountBadge');
+  if(history.length > 0){
+    hb.textContent = history.length;
+    hb.style.display = 'block';
+  }else{
+    hb.style.display = 'none';
+  }
+}
+
+/* ================= 事件绑定 ================= */
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+    tab.classList.add('active');
+    $('page-' + tab.dataset.page).classList.add('active');
+    refresh();  // 切页拉取最新共享数据（其他人录入/撤销后即时可见）
+  });
+});
+
+$('pickAll').addEventListener('click', pickAll);
+$('pickClear').addEventListener('click', pickClear);
+
+function addPlayer(){
+  var input = $('newPlayerName');
+  var name = input.value.trim();
+  if(!name){ toast('请输入玩家昵称'); return; }
+  api('/api/players', 'POST', { name: name }).then(function(r){
+    if(r && r.ok){
+      input.value = '';
+      refresh(true);
+      toast('已添加「' + name + '」，初始 0 分');
+    }else{
+      toast((r && r.msg) || '添加失败');
+    }
+  });
+}
+$('btnAddPlayer').addEventListener('click', addPlayer);
+$('newPlayerName').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') addPlayer();
+});
+
+$('btnDraw').addEventListener('click', openPickModal);
+$('btnConfirmPick').addEventListener('click', confirmPick);
+$('btnCancelPick').addEventListener('click', closePickModal);
+$('pickMask').addEventListener('click', function(e){
+  if(e.target === this) closePickModal();
+});
+$('btnLolSync').addEventListener('click', function(){
+  var button = this;
+  if(['localhost','127.0.0.1','::1'].indexOf(location.hostname) < 0){
+    alert('请在运行 LOL 的电脑上打开 http://127.0.0.1:9529，再刷新 LOL 战绩。');
+    return;
+  }
+  if(!confirm('请先确认：这台电脑上的 LOL 客户端已启动并登录，且已在客户端打开过「生涯-战绩记录」。现在读取最近 6 天的自定义对局吗？')) return;
+  button.disabled = true;
+  button.textContent = '正在读取 LOL 战绩…';
+  api('/api/lol-sync/preview', 'POST').then(function(preview){
+    if(!preview || !preview.ok){
+      alert((preview && preview.error) || '读取失败，请确认 LOL 客户端已登录后重试');
+      return;
+    }
+    var games = preview.games || [];
+    var pending = games.filter(function(game){ return !game.alreadyImported; });
+    if(pending.length === 0){
+      if(preview.detailFailures) {
+        alert('有 ' + preview.detailFailures + ' 局读取详情失败，因此无法判断是否已同步。请在 LOL 客户端打开战绩页后重试。');
+        return;
+      }
+      alert(games.length ? '最近 6 天的自定义对局都已同步，无需重复导入。' : (preview.message || '最近 6 天没有可读取的自定义对局。'));
+      return;
+    }
+    function teamLine(label, team){
+      var won = team.length && team[0].win;
+      var names = team.map(function(player){ return player.name || '未知玩家'; }).join('、');
+      return label + (won ? '（胜）' : '（负）') + '：' + names;
+    }
+    var shown = pending.slice(0, 8).map(function(game, index){
+      return (index + 1) + '. ' + game.time + '\n' + teamLine('A队', game.teamA || []) + '\n' + teamLine('B队', game.teamB || []);
+    });
+    if(pending.length > shown.length) shown.push('……其余 ' + (pending.length - shown.length) + ' 局已省略');
+    var newPlayers = {};
+    pending.forEach(function(game){ (game.newPlayers || []).forEach(function(name){ newPlayers[name] = true; }); });
+    var names = Object.keys(newPlayers);
+    var message = '读取到 ' + pending.length + ' 局尚未导入的自定义对局：\n\n' + shown.join('\n\n');
+    if(preview.detailFailures) message += '\n\n另有 ' + preview.detailFailures + ' 局详情读取失败，将不会同步。';
+    if(names.length) message += '\n\n将自动新增 ' + names.length + ' 名玩家（初始 0 分）：' + names.join('、');
+    message += '\n\n确认后才会同步并更新积分。继续吗？';
+    if(!confirm(message)) return;
+    button.textContent = '正在同步并更新积分…';
+    return api('/api/lol-sync/import', 'POST').then(function(result){
+      if(!result || !result.ok){
+        alert((result && result.error) || '同步失败，请稍后重试');
+        return;
+      }
+      var skipped = (result.results || []).filter(function(item){ return item.status === 'skipped'; }).length;
+      refresh(true).then(function(){
+        alert('同步完成：新导入 ' + (result.imported || 0) + ' 局' + (skipped ? '，跳过 ' + skipped + ' 局（可能已导入或数据不完整）' : '') + '。');
+      });
+    });
+  }).catch(function(){
+    alert('无法连接本机同步服务。请确认通过这台电脑的 http://127.0.0.1:9529 打开页面，并且服务正在运行。');
+  }).finally(function(){
+    button.disabled = false;
+    button.textContent = '🎮 一键读取 LOL 自定义战绩';
+  });
+});
+$('btnVoteDraw').addEventListener('click', function(){ voteRedraw(); });
+$('btnCancelRecord').addEventListener('click', function(){ $('modalMask').style.display = 'none'; });
+$('btnCloseDetail').addEventListener('click', function(){ $('detailMask').classList.remove('show'); });
+$('detailMask').addEventListener('click', function(e){ if(e.target === this) this.classList.remove('show'); });
+$('btnConfirmRecord').addEventListener('click', confirmRecord);
+$('modalMask').addEventListener('click', function(e){
+  if(e.target === this) this.style.display = 'none';
+});
+
+$('btnSortByScore').addEventListener('click', function(){
+  sortKey = 'score';
+  try{ localStorage.setItem('elo_rank_sort', 'score'); }catch(e){}
+  $('rankSortSel').value = 'score';
+  renderPlayers();
+  toast('已按积分重新排序');
+});
+$('rankSortSel').addEventListener('change', function(){
+  sortKey = this.value;
+  try{ localStorage.setItem('elo_rank_sort', sortKey); }catch(e){}
+  renderPlayers();
+});
+$('btnClearScores').addEventListener('click', function(){
+  if(!confirm('确定将所有玩家全部三种模式（3v3/4v4/5v5）积分清零？')) return;
+  api('/api/clear-scores', 'POST').then(function(r){
+    if(r && r.ok){ refresh(true); toast('积分已全部清零'); }
+  });
+});
+
+/* ================= 初始化 ================= */
+try{
+  var savedRank = localStorage.getItem('elo_rank_mode');
+  if(savedRank === 'all') rankMode = 'all';
+  else if(savedRank === '3' || savedRank === '4' || savedRank === '5'){ rankMode = parseInt(savedRank, 10); }
+  else if(['3','4','5'].indexOf(String(parseInt(savedRank || '0', 10))) >= 0){ rankMode = parseInt(savedRank || '0', 10); }
+  else rankMode = 'all';
+}catch(e){ rankMode = 'all'; }
+applyModeUI();
+applyRankModeUI();
+/* 恢复排序偏好 */
+try{
+  var __ss = localStorage.getItem('elo_rank_sort');
+  if(__ss === 'winrate' || __ss === 'kda'){ sortKey = __ss; $('rankSortSel').value = __ss; }
+}catch(e){}
+refresh();
+})();
+</script>
+
+</body></html>
